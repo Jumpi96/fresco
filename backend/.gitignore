@@ -30,3 +30,6 @@ metals.sbt
 .idea
 .idea_modules
 /.worksheet/
+
+# conf
+src/main/resources/application.conf

@@ -1,0 +1,30 @@
+akka {
+  http {
+    host-connection-pool {
+      max-open-requests = 128
+    }
+  }
+}
+
+app {
+  name = "Fresco"
+
+  env = "prod"
+
+  prod {
+    helloFresh {
+      siteUrl = "https://www.hellofresh.com"
+      searchApiUrl = "https://gw.hellofresh.com/api/recipes/search?"
+      imagesUrl = "https://img.hellofresh.com/hellofresh_s3"
+    }
+    aws {
+      accessKey = ${?ACCESS_KEY}
+      secretKey = ${?SECRET_KEY}
+      storage {
+        recipesTableName = ${?RECIPES_TABLE_NAME}
+        ingredientsTableName = ${?INGREDIENTS_TABLE_NAME}
+        bucketName = ${?BUCKET_NAME}
+      }
+    }
+  }
+}
