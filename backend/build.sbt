@@ -1,22 +1,31 @@
-val scala3Version = "3.5.1"
+lazy val akkaHttpVersion = "10.6.3"
+lazy val akkaVersion    = "2.9.6"
 
-lazy val root = project
-  .in(file("."))
-  .settings(
-    name := "fresco-api",
-    version := "0.1.0-SNAPSHOT",
+resolvers += "Akka library repository".at("https://repo.akka.io/maven")
 
-    scalaVersion := scala3Version,
+// Run in a separate JVM, to make sure sbt waits until all threads have
+// finished before returning.
+// If you want to keep the application running while executing other
+// sbt tasks, consider https://github.com/spray/sbt-revolver/
+fork := true
 
+lazy val root = (project in file(".")).
+  settings(
+    inThisBuild(List(
+      organization    := "com.fresco",
+      scalaVersion    := "3.3.3"
+    )),
+    name := "fresco-backend",
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "munit" % "1.0.0" % Test,
-      "com.typesafe.akka" %% "akka-actor-typed" % "2.8.7",
-      "com.typesafe.akka" %% "akka-stream" % "2.8.7",
-      "com.typesafe.akka" %% "akka-http" % "10.5.3",
-      "io.spray" %%  "spray-json" % "1.3.6",
-      "org.json4s" %% "json4s-native" % "4.0.7",
-      "com.typesafe.akka" %% "akka-http-spray-json" % "10.5.3",
-      "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.12.765",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.12.765",
+      "com.typesafe.akka" %% "akka-http"                % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-spray-json"     % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-actor-typed"         % akkaVersion,
+      "com.typesafe.akka" %% "akka-stream"              % akkaVersion,
+      "com.typesafe.akka" %% "akka-pki"                 % akkaVersion,
+      "ch.qos.logback"    % "logback-classic"           % "1.2.11",
+
+      "com.typesafe.akka" %% "akka-http-testkit"        % akkaHttpVersion % Test,
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion     % Test,
+      "org.scalatest"     %% "scalatest"                % "3.2.12"        % Test
     )
   )
