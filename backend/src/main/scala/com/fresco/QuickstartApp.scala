@@ -4,6 +4,7 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.Directives._
 
 import scala.util.Failure
 import scala.util.Success
@@ -31,9 +32,14 @@ object QuickstartApp {
     val rootBehavior = Behaviors.setup[Nothing] { context =>
       val userRegistryActor = context.spawn(UserRegistry(), "UserRegistryActor")
       context.watch(userRegistryActor)
+      val ingredientRegistryActor = context.spawn(IngredientRegistry(), "IngredientRegistryActor")
+      context.watch(ingredientRegistryActor)
 
-      val routes = new UserRoutes(userRegistryActor)(context.system)
-      startHttpServer(routes.userRoutes)(context.system)
+      val routes: Route = concat(
+        new UserRoutes(userRegistryActor)(context.system).userRoutes,
+        new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes
+      )
+      startHttpServer(routes)(context.system)
 
       Behaviors.empty
     }

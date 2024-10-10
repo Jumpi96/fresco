@@ -13,6 +13,9 @@ object JsonFormats  {
   implicit val userJsonFormat: RootJsonFormat[User] = jsonFormat3(User.apply)
   implicit val usersJsonFormat: RootJsonFormat[Users] = jsonFormat1(Users.apply)
 
+  implicit val ingredientJsonFormat: RootJsonFormat[Ingredient] = jsonFormat3(Ingredient.apply)
+  implicit val ingredientsJsonFormat: RootJsonFormat[Ingredients] = jsonFormat1(Ingredients.apply)
+
   implicit val actionPerformedJsonFormat: RootJsonFormat[ActionPerformed]  = jsonFormat1(ActionPerformed.apply)
 }
 //#json-formats
