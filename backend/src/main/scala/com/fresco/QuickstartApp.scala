@@ -4,7 +4,8 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.*
+import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.util.Failure
 import scala.util.Success
@@ -30,9 +31,14 @@ object QuickstartApp {
   def main(args: Array[String]): Unit = {
     //#server-bootstrapping
     val rootBehavior = Behaviors.setup[Nothing] { context =>
+      val config: Config = ConfigFactory.load()
+      val environment: String = config.getString("fresco.env")
+
       val userRegistryActor = context.spawn(UserRegistry(), "UserRegistryActor")
       context.watch(userRegistryActor)
-      val ingredientRegistryActor = context.spawn(IngredientRegistry(), "IngredientRegistryActor")
+
+      val dynamoDBService = DynamoDBService(config.getConfig(s"fresco.$environment.aws"))(context.executionContext)
+      val ingredientRegistryActor = context.spawn(IngredientRegistry(dynamoDBService), "IngredientRegistryActor")
       context.watch(ingredientRegistryActor)
 
       val routes: Route = concat(

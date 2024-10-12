@@ -2,3 +2,5 @@
 .idea
 target/
 .bsp
+
+src/main/resources/application.conf
