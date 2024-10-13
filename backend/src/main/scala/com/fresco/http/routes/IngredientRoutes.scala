@@ -1,12 +1,14 @@
-package com.fresco
+package com.fresco.http.routes
 
-import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.actor.typed.scaladsl.AskPattern.*
+import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import com.fresco.IngredientRegistry.{GetIngredient, GetIngredientResponse, GetIngredientsResponse}
+import com.fresco.http.formats.JsonFormats
+import com.fresco.registries.IngredientRegistry.{GetIngredient, GetIngredientResponse, GetIngredientsResponse}
+import com.fresco.registries.IngredientRegistry
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}

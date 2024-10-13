@@ -1,23 +1,24 @@
-package com.fresco
+package com.fresco.http.routes
 
-import akka.http.scaladsl.server.Directives._
+import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.scaladsl.AskPattern.*
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
+import akka.util.Timeout
+import com.fresco.http.formats.JsonFormats
+import com.fresco.registries.UserRegistry.{ActionPerformed, CreateUser, DeleteUser, GetUser, GetUserResponse, GetUsers}
+import com.fresco.registries.{User, UserRegistry, Users}
 
 import scala.concurrent.Future
-import com.fresco.UserRegistry._
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.scaladsl.AskPattern._
-import akka.util.Timeout
 
 //#import-json-formats
 //#user-routes-class
 class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val system: ActorSystem[_]) {
 
   //#user-routes-class
-  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-  import JsonFormats._
+  import JsonFormats.*
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport.*
   //#import-json-formats
 
   // If ask takes more time than this to complete the request is failed

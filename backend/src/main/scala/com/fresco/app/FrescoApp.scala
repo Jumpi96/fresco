@@ -1,17 +1,20 @@
-package com.fresco
+package com.fresco.app
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives.*
+import akka.http.scaladsl.server.Route
+import com.fresco.config.DynamoDBClientProvider
+import com.fresco.domain.services.DynamoDBService
+import com.fresco.http.routes.{IngredientRoutes, UserRoutes}
+import com.fresco.registries.{IngredientRegistry, UserRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
 
-import scala.util.Failure
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 //#main-class
-object QuickstartApp {
+object FrescoApp {
   //#start-http-server
   private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
     // Akka HTTP still needs a classic ActorSystem to start

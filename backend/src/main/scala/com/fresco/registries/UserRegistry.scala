@@ -1,9 +1,9 @@
-package com.fresco
+package com.fresco.registries
 
 //#user-registry-actor
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
+
 import scala.collection.immutable
 
 //#user-case-classes

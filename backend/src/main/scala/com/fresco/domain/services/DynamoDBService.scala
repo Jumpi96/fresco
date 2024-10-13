@@ -1,7 +1,8 @@
-package com.fresco
+package com.fresco.domain.services
 
-import com.amazonaws.services.dynamodbv2.{AmazonDynamoDB}
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2.model.{AttributeValue, GetItemRequest, ScanRequest, ScanResult}
+import com.fresco.domain.models.Ingredient
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*

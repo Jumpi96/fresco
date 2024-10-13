@@ -1,15 +1,16 @@
-package com.fresco
+package com.fresco.http.formats
 
-import com.fresco.IngredientRegistry.GetIngredientsResponse
-import com.fresco.UserRegistry.ActionPerformed
+import com.fresco.domain.models.Ingredient
+import com.fresco.registries.UserRegistry.ActionPerformed
+import com.fresco.registries.{User, Users}
+import com.fresco.registries.IngredientRegistry.GetIngredientsResponse
 
 //#json-formats
-import spray.json.RootJsonFormat
-import spray.json.DefaultJsonProtocol
+import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 object JsonFormats  {
   // import the default encoders for primitive types (Int, String, Lists etc)
-  import DefaultJsonProtocol._
+  import DefaultJsonProtocol.*
 
   implicit val userJsonFormat: RootJsonFormat[User] = jsonFormat3(User.apply)
   implicit val usersJsonFormat: RootJsonFormat[Users] = jsonFormat1(Users.apply)

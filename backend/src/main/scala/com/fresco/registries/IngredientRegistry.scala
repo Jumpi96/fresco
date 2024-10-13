@@ -1,19 +1,15 @@
-package com.fresco
+package com.fresco.registries
 
 //#ingredient-registry-actor
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import akka.event.LoggingAdapter
+import com.fresco.domain.models.Ingredient
+import com.fresco.domain.services.DynamoDBService
 import org.slf4j.Logger
 
-//import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-//#ingredient-case-classes
-final case class Ingredient(id: String, name: String, imagePath: Option[String])
-//#ingredient-case-classes
 
 object IngredientRegistry {
   // actor protocol

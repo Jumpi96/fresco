@@ -1,12 +1,13 @@
-package com.fresco
+package com.fresco.http.routes
 
 //#user-routes-spec
 //#test-top
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.ActorSystem
 import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.*
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import com.fresco.registries.{User, UserRegistry}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,8 +31,8 @@ class UserRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with Sc
   lazy val routes = new UserRoutes(userRegistry).userRoutes
 
   // use the json formats to marshal and unmarshall objects in the test
-  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-  import JsonFormats._
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport.*
+  import com.fresco.http.formats.JsonFormats.*
   //#set-up
 
   //#actual-test
