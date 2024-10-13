@@ -57,7 +57,7 @@ class IngredientRoutes(ingredientRegistry: ActorRef[IngredientRegistry.Command])
             onComplete(ingredientRegistry.ask(replyTo => GetIngredient(id, replyTo))) {
               case Success(GetIngredientResponse(Some(ingredient))) =>
                 complete(ingredient)
-              case Success(GetIngredientResponse(None)) =>
+              case Success(_) =>
                 complete(StatusCodes.NotFound -> s"Ingredient with ID $id not found")
               case Failure(exception) =>
                 complete(StatusCodes.InternalServerError -> s"Failed to fetch ingredient: ${exception.getMessage}")
