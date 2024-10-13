@@ -1,24 +1,16 @@
 package com.fresco
 
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
+import com.amazonaws.services.dynamodbv2.{AmazonDynamoDB}
 import com.amazonaws.services.dynamodbv2.model.{AttributeValue, GetItemRequest, ScanRequest, ScanResult}
-import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
 
-class DynamoDBService(awsConfig: Config)(implicit ec: ExecutionContext) {
-  val INGREDIENTS_TABLE = awsConfig.getConfig("storage").getString("ingredientsTableName")
-
-  val dynamoDBClient = AmazonDynamoDBClientBuilder.standard()
-    .withCredentials(new AWSStaticCredentialsProvider(
-      new BasicAWSCredentials(awsConfig.getString("accessKey"), awsConfig.getString("secretKey"))))
-    .build();
+class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String)(implicit ec: ExecutionContext) {
 
   def getIngredients(lastEvaluatedId: Option[String] = None, limit: Int = 50): Future[(Seq[Ingredient], Option[String])] = {
     val scanRequest = new ScanRequest()
-      .withTableName(INGREDIENTS_TABLE)
+      .withTableName(ingredientsTable)
       .withLimit(limit)
 
     if (lastEvaluatedId.isDefined) {
@@ -53,7 +45,7 @@ class DynamoDBService(awsConfig: Config)(implicit ec: ExecutionContext) {
   def getIngredient(id: String): Future[Option[Ingredient]] = {
     Future {
       val getItemRequest = new GetItemRequest()
-        .withTableName(INGREDIENTS_TABLE)
+        .withTableName(ingredientsTable)
         .withKey(Map("id" -> new AttributeValue().withS(id)).asJava)
 
       val result = dynamoDBClient.getItem(getItemRequest)

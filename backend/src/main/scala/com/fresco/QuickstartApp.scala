@@ -37,7 +37,10 @@ object QuickstartApp {
       val userRegistryActor = context.spawn(UserRegistry(), "UserRegistryActor")
       context.watch(userRegistryActor)
 
-      val dynamoDBService = DynamoDBService(config.getConfig(s"fresco.$environment.aws"))(context.executionContext)
+      val awsConfig = config.getConfig(s"fresco.$environment.aws")
+      val dynamoDBClient = DynamoDBClientProvider.createDynamoDBClient(awsConfig)
+      val ingredientsTable = awsConfig.getConfig("storage").getString("ingredientsTableName")
+      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable)(context.executionContext)
       val ingredientRegistryActor = context.spawn(IngredientRegistry(dynamoDBService), "IngredientRegistryActor")
       context.watch(ingredientRegistryActor)
 
