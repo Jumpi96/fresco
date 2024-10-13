@@ -1,5 +1,6 @@
 package com.fresco
 
+import com.fresco.IngredientRegistry.GetIngredientsResponse
 import com.fresco.UserRegistry.ActionPerformed
 
 //#json-formats
@@ -14,7 +15,7 @@ object JsonFormats  {
   implicit val usersJsonFormat: RootJsonFormat[Users] = jsonFormat1(Users.apply)
 
   implicit val ingredientJsonFormat: RootJsonFormat[Ingredient] = jsonFormat3(Ingredient.apply)
-  implicit val ingredientsJsonFormat: RootJsonFormat[Ingredients] = jsonFormat1(Ingredients.apply)
+  implicit val getIngredientsResponseFormat: RootJsonFormat[GetIngredientsResponse] = jsonFormat2(GetIngredientsResponse.apply)
 
   implicit val actionPerformedJsonFormat: RootJsonFormat[ActionPerformed]  = jsonFormat1(ActionPerformed.apply)
 }
