@@ -44,6 +44,9 @@ class DynamoDBService(awsConfig: Config)(implicit ec: ExecutionContext) {
 
       // Return ingredients and the lastEvaluatedId (for pagination)
       (ingredients, lastEvaluatedId)
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error fetching ingredients: ${ex.getMessage}")
     }
   }
 
@@ -54,17 +57,16 @@ class DynamoDBService(awsConfig: Config)(implicit ec: ExecutionContext) {
         .withKey(Map("id" -> new AttributeValue().withS(id)).asJava)
 
       val result = dynamoDBClient.getItem(getItemRequest)
-      val item = result.getItem
-
-      if (item == null) {
-        None
-      } else {
-        Some(Ingredient(
+      Option(result.getItem).map { item =>
+        Ingredient(
           id = item.get("id").getS,
           name = item.get("name").getS,
           imagePath = Option(item.get("imagePath")).map(_.getS)
-        ))
+        )
       }
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error fetching ingredient $id: ${ex.getMessage}")
     }
   }
 }

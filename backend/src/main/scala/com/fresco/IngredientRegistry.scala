@@ -4,6 +4,8 @@ package com.fresco
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
+import akka.event.LoggingAdapter
+import org.slf4j.Logger
 
 //import scala.collection.immutable
 import scala.concurrent.ExecutionContext
@@ -21,10 +23,16 @@ object IngredientRegistry {
   final case class GetIngredient(id: String, replyTo: ActorRef[GetIngredientResponse]) extends Command
   final case class GetIngredientResponse(maybeIngredient: Option[Ingredient])
 
-  def apply(dynamoDBService: DynamoDBService)(implicit ec: ExecutionContext): Behavior[Command] =
-    registry(dynamoDBService)
+  def apply(dynamoDBService: DynamoDBService): Behavior[Command] = {
+    Behaviors.setup { context =>
+      implicit val ec: ExecutionContext = context.executionContext
+      val log = context.log
 
-  private def registry(dynamoDBService: DynamoDBService)(implicit ec: ExecutionContext): Behavior[Command] =
+      registry(dynamoDBService)(log, ec)
+    }
+  }
+
+  private def registry(dynamoDBService: DynamoDBService)(implicit log: Logger, ec: ExecutionContext): Behavior[Command] =
     Behaviors.setup { context =>
 
       Behaviors.receiveMessage {
@@ -32,16 +40,26 @@ object IngredientRegistry {
           // Fetch ingredients with pagination
           dynamoDBService.getIngredients(lastEvaluatedId).onComplete {
             case Success((ingredients, newLastEvaluatedId)) =>
+              log.info(s"Fetched ${ingredients.size} ingredients from DynamoDB")
               replyTo ! GetIngredientsResponse(ingredients, newLastEvaluatedId)
-            case Failure(_) =>
+            case Failure(ex) =>
               // Handle failure case here, e.g. by sending an empty list
+              log.error(s"Failed to fetch ingredients: ${ex.getMessage}")
               replyTo ! GetIngredientsResponse(Seq.empty, None)
           }
           Behaviors.same
         case GetIngredient(id, replyTo) =>
-          dynamoDBService.getIngredient(id).map {
-            case Some(ingredient) => replyTo ! GetIngredientResponse(Some(ingredient))
-            case None => replyTo ! GetIngredientResponse(None)
+          log.info(s"Fetching ingredient with ID: $id")
+          dynamoDBService.getIngredient(id).onComplete {
+            case Success(Some(ingredient)) =>
+              log.info(s"Fetched ingredient: $id")
+              replyTo ! GetIngredientResponse(Some(ingredient))
+            case Success(_) =>
+              log.warn(s"Ingredient with ID: $id not found")
+              replyTo ! GetIngredientResponse(None)
+            case Failure(ex) =>
+              log.error(s"Failed to fetch ingredient: ${ex.getMessage}")
+              replyTo ! GetIngredientResponse(None)
           }
           Behaviors.same
       }

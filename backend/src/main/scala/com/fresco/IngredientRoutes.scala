@@ -6,9 +6,10 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import com.fresco.IngredientRegistry.{GetIngredient, GetIngredientResponse, GetIngredients}
+import com.fresco.IngredientRegistry.{GetIngredient, GetIngredientResponse, GetIngredientsResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 //#import-json-formats
 //#ingredient-routes-class
@@ -39,8 +40,11 @@ class IngredientRoutes(ingredientRegistry: ActorRef[IngredientRegistry.Command])
             val futureIngredients: Future[IngredientRegistry.GetIngredientsResponse] =
               ingredientRegistry.ask(replyTo => IngredientRegistry.GetIngredients(size, lastEvaluatedId, replyTo))
 
-            onSuccess(futureIngredients) { response =>
-              complete(response)
+            onComplete(futureIngredients) {
+              case Success(GetIngredientsResponse(ingredients, lastEvaluatedId)) =>
+                complete(GetIngredientsResponse(ingredients, lastEvaluatedId))
+              case Failure(ex) =>
+                complete(StatusCodes.InternalServerError -> s"Failed to fetch ingredients: ${ex.getMessage}")
             }
           }
         },
@@ -48,11 +52,13 @@ class IngredientRoutes(ingredientRegistry: ActorRef[IngredientRegistry.Command])
         //#ingredients-get
         path(Segment) { id =>
           get {
-            onSuccess(ingredientRegistry.ask(replyTo => IngredientRegistry.GetIngredient(id, replyTo)).map {
-              case IngredientRegistry.GetIngredientResponse(maybeIngredient) => maybeIngredient
-            }) {
-              case Some(ingredient) => complete(ingredient)
-              case None => complete(StatusCodes.NotFound)
+            onComplete(ingredientRegistry.ask(replyTo => GetIngredient(id, replyTo))) {
+              case Success(GetIngredientResponse(Some(ingredient))) =>
+                complete(ingredient)
+              case Success(GetIngredientResponse(None)) =>
+                complete(StatusCodes.NotFound -> s"Ingredient with ID $id not found")
+              case Failure(exception) =>
+                complete(StatusCodes.InternalServerError -> s"Failed to fetch ingredient: ${exception.getMessage}")
             }
           }
         })

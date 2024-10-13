@@ -38,7 +38,7 @@ object QuickstartApp {
       context.watch(userRegistryActor)
 
       val dynamoDBService = DynamoDBService(config.getConfig(s"fresco.$environment.aws"))(context.executionContext)
-      val ingredientRegistryActor = context.spawn(IngredientRegistry(dynamoDBService)(context.executionContext), "IngredientRegistryActor")
+      val ingredientRegistryActor = context.spawn(IngredientRegistry(dynamoDBService), "IngredientRegistryActor")
       context.watch(ingredientRegistryActor)
 
       val routes: Route = concat(
