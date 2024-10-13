@@ -18,10 +18,10 @@ jobs:
         uses: actions/checkout@v3
 
       # Set up JDK (choose the appropriate version for your Scala project)
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'adopt'  # You can also use 'temurin' or others
 
       # Cache SBT dependencies to speed up builds
@@ -39,7 +39,7 @@ jobs:
       # Install sbt
       - name: Install SBT
         run: |
-          curl -L https://github.com/sbt/sbt/releases/download/v1.5.5/sbt-1.5.5.tgz | tar xz
+          curl -L https://github.com/sbt/sbt/releases/download/v1.10.2/sbt-1.10.2.tgz | tar xz
           sudo mv sbt /usr/local/bin/sbt
 
       # Run tests using SBT
