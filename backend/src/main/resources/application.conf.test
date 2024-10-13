@@ -10,7 +10,7 @@ fresco {
     aws {
       accessKey = "accessKey"
       secretKey = "secretKey"
-      storage {"
+      storage {
         recipesTableName = "recipes"
         ingredientsTableName = "ingredients"
         bucketName = "frescoBucket"
