@@ -3,8 +3,11 @@ package com.fresco.app
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods.{DELETE, GET, OPTIONS, POST, PUT}
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.headers.{HttpOriginRange, `Access-Control-Allow-Credentials`, `Access-Control-Allow-Headers`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`}
 import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Directive0, Route}
 import com.fresco.config.DynamoDBClientProvider
 import com.fresco.domain.services.DynamoDBService
 import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes, UserRoutes}
@@ -12,6 +15,7 @@ import com.fresco.registries.{IngredientRegistry, RecipeRegistry, UserRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.util.{Failure, Success}
+
 
 //#main-class
 object FrescoApp {
@@ -30,6 +34,7 @@ object FrescoApp {
         system.terminate()
     }
   }
+
   //#start-http-server
   def main(args: Array[String]): Unit = {
     //#server-bootstrapping
@@ -50,11 +55,13 @@ object FrescoApp {
       val recipeRegistryActor = context.spawn(RecipeRegistry(dynamoDBService), "RecipeRegistryActor")
       context.watch(recipeRegistryActor)
 
-      val routes: Route = concat(
-        new UserRoutes(userRegistryActor)(context.system).userRoutes,
-        new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
-        new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes,
-      )
+      val routes: Route = cors() {
+        concat(
+          new UserRoutes(userRegistryActor)(context.system).userRoutes,
+          new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
+          new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes,
+        )
+      }
       startHttpServer(routes)(context.system)
 
       Behaviors.empty

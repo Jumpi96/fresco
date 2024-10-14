@@ -22,7 +22,7 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-actor-typed"         % akkaVersion,
       "com.typesafe.akka" %% "akka-stream"              % akkaVersion,
       "com.typesafe.akka" %% "akka-pki"                 % akkaVersion,
-      "ch.qos.logback"    % "logback-classic"           % "1.2.11",
+      "ch.qos.logback"    % "logback-classic"           % "1.5.9",
       "com.amazonaws"     % "aws-java-sdk-dynamodb"     % "1.12.765",
 
       "com.typesafe.akka" %% "akka-http-testkit"        % akkaHttpVersion % Test,
