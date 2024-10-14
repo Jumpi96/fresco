@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.concurrent.{ExecutionContext, Future}
 
 // Mock the DynamoDBService for the tests
-class MockDynamoDBService(implicit ec: ExecutionContext) extends DynamoDBService(null, "mockTable") {
+class MockDynamoDBService(implicit ec: ExecutionContext) extends DynamoDBService(null, "mockTable", "mockTableTwo") {
   override def getIngredients(lastEvaluatedId: Option[String], limit: Int): Future[(Seq[Ingredient], Option[String])] = {
     // Return a mocked list of ingredients and None for lastEvaluatedId
     Future.successful((Seq(Ingredient("1", "Ingredient1", None), Ingredient("2", "Ingredient2", Some("imagePath"))), None))

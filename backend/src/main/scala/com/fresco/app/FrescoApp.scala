@@ -7,8 +7,8 @@ import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import com.fresco.config.DynamoDBClientProvider
 import com.fresco.domain.services.DynamoDBService
-import com.fresco.http.routes.{IngredientRoutes, UserRoutes}
-import com.fresco.registries.{IngredientRegistry, UserRegistry}
+import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes, UserRoutes}
+import com.fresco.registries.{IngredientRegistry, RecipeRegistry, UserRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.util.{Failure, Success}
@@ -43,13 +43,17 @@ object FrescoApp {
       val awsConfig = config.getConfig(s"fresco.$environment.aws")
       val dynamoDBClient = DynamoDBClientProvider.createDynamoDBClient(awsConfig)
       val ingredientsTable = awsConfig.getConfig("storage").getString("ingredientsTableName")
-      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable)(context.executionContext)
+      val recipesTable = awsConfig.getConfig("storage").getString("recipesTableName")
+      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable, recipesTable)(context.executionContext)
       val ingredientRegistryActor = context.spawn(IngredientRegistry(dynamoDBService), "IngredientRegistryActor")
       context.watch(ingredientRegistryActor)
+      val recipeRegistryActor = context.spawn(RecipeRegistry(dynamoDBService), "RecipeRegistryActor")
+      context.watch(recipeRegistryActor)
 
       val routes: Route = concat(
         new UserRoutes(userRegistryActor)(context.system).userRoutes,
-        new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes
+        new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
+        new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes,
       )
       startHttpServer(routes)(context.system)
 
