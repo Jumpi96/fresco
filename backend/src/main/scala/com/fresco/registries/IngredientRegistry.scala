@@ -34,7 +34,7 @@ object IngredientRegistry {
       Behaviors.receiveMessage {
         case GetIngredients(pageSize, lastEvaluatedId, replyTo) =>
           // Fetch ingredients with pagination
-          dynamoDBService.getIngredients(lastEvaluatedId).onComplete {
+          dynamoDBService.getIngredients(lastEvaluatedId, pageSize).onComplete {
             case Success((ingredients, newLastEvaluatedId)) =>
               log.info(s"Fetched ${ingredients.size} ingredients from DynamoDB")
               replyTo ! GetIngredientsResponse(ingredients, newLastEvaluatedId)
