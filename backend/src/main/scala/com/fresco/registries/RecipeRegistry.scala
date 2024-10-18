@@ -4,7 +4,7 @@ package com.fresco.registries
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.fresco.domain.models.Recipe
-import com.fresco.domain.services.DynamoDBService
+import com.fresco.domain.repositories.RecipeRepository
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext
@@ -19,22 +19,22 @@ object RecipeRegistry {
   final case class GetRecipe(id: String, replyTo: ActorRef[GetRecipeResponse]) extends Command
   final case class GetRecipeResponse(maybeRecipe: Option[Recipe])
 
-  def apply(dynamoDBService: DynamoDBService): Behavior[Command] = {
+  def apply(repository: RecipeRepository): Behavior[Command] = {
     Behaviors.setup { context =>
       implicit val ec: ExecutionContext = context.executionContext
       val log = context.log
 
-      registry(dynamoDBService)(log, ec)
+      registry(repository)(log, ec)
     }
   }
 
-  private def registry(dynamoDBService: DynamoDBService)(implicit log: Logger, ec: ExecutionContext): Behavior[Command] =
+  private def registry(repository: RecipeRepository)(implicit log: Logger, ec: ExecutionContext): Behavior[Command] =
     Behaviors.setup { context =>
 
       Behaviors.receiveMessage {
         case GetRecipes(pageSize, lastEvaluatedId, replyTo) =>
           // Fetch recipes with pagination
-          dynamoDBService.getRecipes(lastEvaluatedId, pageSize).onComplete {
+          repository.getRecipes(lastEvaluatedId, pageSize).onComplete {
             case Success((recipes, newLastEvaluatedId)) =>
               log.info(s"Fetched ${recipes.size} recipes from DynamoDB")
               replyTo ! GetRecipesResponse(recipes, newLastEvaluatedId)
@@ -46,7 +46,7 @@ object RecipeRegistry {
           Behaviors.same
         case GetRecipe(id, replyTo) =>
           log.info(s"Fetching recipe with ID: $id")
-          dynamoDBService.getRecipe(id).onComplete {
+          repository.getRecipe(id).onComplete {
             case Success(Some(recipe)) =>
               log.info(s"Fetched recipe: $id")
               replyTo ! GetRecipeResponse(Some(recipe))

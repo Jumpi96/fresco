@@ -1,13 +1,15 @@
 import akka.actor.testkit.typed.scaladsl.{ActorTestKit, TestProbe}
 import akka.actor.typed.ActorRef
 import com.fresco.domain.models.Ingredient
-import com.fresco.domain.services.DynamoDBService
+import com.fresco.domain.repositories.IngredientRepository
+import com.fresco.domain.services.{DynamoDBService, S3Service}
 import com.fresco.registries.IngredientRegistry
 import com.fresco.registries.IngredientRegistry.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
 
 // Mock the DynamoDBService for the tests
@@ -26,6 +28,13 @@ class MockDynamoDBService(implicit ec: ExecutionContext) extends DynamoDBService
   }
 }
 
+// Mock the S3Service for the tests
+class MockS3Service(implicit ec: ExecutionContext) extends S3Service(null, "bucket") {
+  override def generatePresignedUrl(s3Path: String): Future[URL] = Future {
+    URL("http://example.com")
+  }
+}
+
 class IngredientRegistrySpec extends AnyWordSpec with Matchers with ScalaFutures {
 
   val testKit = ActorTestKit()
@@ -33,7 +42,8 @@ class IngredientRegistrySpec extends AnyWordSpec with Matchers with ScalaFutures
 
   // Create a TestProbe to simulate the replyTo ActorRef
   val probe: TestProbe[GetIngredientsResponse] = testKit.createTestProbe[GetIngredientsResponse]()
-  val ingredientRegistry: ActorRef[Command] = testKit.spawn(IngredientRegistry(new MockDynamoDBService))
+  val ingredientRepository = new IngredientRepository(new MockDynamoDBService, new MockS3Service)
+  val ingredientRegistry: ActorRef[Command] = testKit.spawn(IngredientRegistry(ingredientRepository))
 
   "IngredientRegistry" should {
 

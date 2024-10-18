@@ -8,8 +8,9 @@ import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.headers.{HttpOriginRange, `Access-Control-Allow-Credentials`, `Access-Control-Allow-Headers`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`}
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.{Directive0, Route}
-import com.fresco.config.DynamoDBClientProvider
-import com.fresco.domain.services.DynamoDBService
+import com.fresco.config.AWSClientsProvider
+import com.fresco.domain.repositories.{IngredientRepository, RecipeRepository}
+import com.fresco.domain.services.{DynamoDBService, S3Service}
 import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes, UserRoutes}
 import com.fresco.registries.{IngredientRegistry, RecipeRegistry, UserRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -46,13 +47,21 @@ object FrescoApp {
       context.watch(userRegistryActor)
 
       val awsConfig = config.getConfig(s"fresco.$environment.aws")
-      val dynamoDBClient = DynamoDBClientProvider.createDynamoDBClient(awsConfig)
       val ingredientsTable = awsConfig.getConfig("storage").getString("ingredientsTableName")
       val recipesTable = awsConfig.getConfig("storage").getString("recipesTableName")
+      val bucketName = awsConfig.getConfig("storage").getString("bucketName")
+      val s3Client = AWSClientsProvider.createS3PresignedUrlClient(awsConfig)
+      val dynamoDBClient = AWSClientsProvider.createDynamoDBClient(awsConfig)
+
       val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable, recipesTable)(context.executionContext)
-      val ingredientRegistryActor = context.spawn(IngredientRegistry(dynamoDBService), "IngredientRegistryActor")
+      val s3Service = S3Service(s3Client, bucketName)(context.executionContext)
+
+      val ingredientRepository = IngredientRepository(dynamoDBService, s3Service)(context.executionContext)
+      val recipeRepository = RecipeRepository(dynamoDBService, s3Service)(context.executionContext)
+
+      val ingredientRegistryActor = context.spawn(IngredientRegistry(ingredientRepository), "IngredientRegistryActor")
       context.watch(ingredientRegistryActor)
-      val recipeRegistryActor = context.spawn(RecipeRegistry(dynamoDBService), "RecipeRegistryActor")
+      val recipeRegistryActor = context.spawn(RecipeRegistry(recipeRepository), "RecipeRegistryActor")
       context.watch(recipeRegistryActor)
 
       val routes: Route = cors() {

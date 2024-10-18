@@ -4,7 +4,7 @@ package com.fresco.registries
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 import com.fresco.domain.models.Ingredient
-import com.fresco.domain.services.DynamoDBService
+import com.fresco.domain.repositories.IngredientRepository
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext
@@ -19,22 +19,23 @@ object IngredientRegistry {
   final case class GetIngredient(id: String, replyTo: ActorRef[GetIngredientResponse]) extends Command
   final case class GetIngredientResponse(maybeIngredient: Option[Ingredient])
 
-  def apply(dynamoDBService: DynamoDBService): Behavior[Command] = {
+  def apply(repository: IngredientRepository): Behavior[Command] = {
     Behaviors.setup { context =>
       implicit val ec: ExecutionContext = context.executionContext
       val log = context.log
 
-      registry(dynamoDBService)(log, ec)
+      registry(repository)(log, ec)
     }
   }
 
-  private def registry(dynamoDBService: DynamoDBService)(implicit log: Logger, ec: ExecutionContext): Behavior[Command] =
+  private def registry(repository: IngredientRepository)
+                      (implicit log: Logger, ec: ExecutionContext): Behavior[Command] =
     Behaviors.setup { context =>
 
       Behaviors.receiveMessage {
         case GetIngredients(pageSize, lastEvaluatedId, replyTo) =>
           // Fetch ingredients with pagination
-          dynamoDBService.getIngredients(lastEvaluatedId, pageSize).onComplete {
+          repository.getIngredients(lastEvaluatedId, pageSize).onComplete {
             case Success((ingredients, newLastEvaluatedId)) =>
               log.info(s"Fetched ${ingredients.size} ingredients from DynamoDB")
               replyTo ! GetIngredientsResponse(ingredients, newLastEvaluatedId)
@@ -46,7 +47,7 @@ object IngredientRegistry {
           Behaviors.same
         case GetIngredient(id, replyTo) =>
           log.info(s"Fetching ingredient with ID: $id")
-          dynamoDBService.getIngredient(id).onComplete {
+          repository.getIngredient(id).onComplete {
             case Success(Some(ingredient)) =>
               log.info(s"Fetched ingredient: $id")
               replyTo ! GetIngredientResponse(Some(ingredient))
