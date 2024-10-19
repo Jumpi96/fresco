@@ -41,6 +41,7 @@ jobs:
 
       - name: Terraform Apply
         if: success()
+        id: apply
         run: |
           terraform apply -auto-approve tfplan
           echo 'frontend_bucket_name=$(terraform output -raw frontend_bucket_name)' >> "$GITHUB_OUTPUT"
