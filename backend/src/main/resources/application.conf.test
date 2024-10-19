@@ -1,7 +1,7 @@
 akka {
   loglevel = "INFO"
   loggers = ["akka.event.slf4j.Slf4jLogger"]
-  license-key = "licenseKey"
+  # license-key = "licenseKey"
 }
 
 fresco {
