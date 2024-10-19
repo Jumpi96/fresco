@@ -7,7 +7,7 @@
         :recipe="recipe" />
     </div>
     <div class="recipe-grid-footer">
-      <button @click="loadMoreRecipes" v-if="lastEvaluatedId" class="load-more-button">Load More</button>
+      <button @click="loadMoreRecipes" v-if="lastEvaluatedId" class="load-more-button">Load more...</button>
     </div>
   </div>
 </template>

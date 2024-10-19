@@ -1,50 +1,25 @@
-<template>
-  <div class="recipe-page">
-    <a :href="recipe.websiteUrl" target="_blank" class="hf-button">View in HelloFresh</a>
-    <h1 class="recipe-title">{{ recipe.name }}</h1>
-    <img :src="recipe.imagePath" :alt="recipe.name" class="recipe-image">
-    <div class="recipe-details">
-      <p><strong>Preparation Time:</strong> {{ formatTime(recipe.totalTime) }}</p>
-      <div class="macros">
-        <span><strong>Carbs:</strong> {{ recipe.macros.carbs }}g</span>
-        <span><strong>Fats:</strong> {{ recipe.macros.fats }}g</span>
-        <span><strong>Proteins:</strong> {{ recipe.macros.proteins }}g</span>
-        <span><strong>Calories:</strong> {{ calculateCalories(recipe) }} kcal</span>
-      </div>
-    </div>
-    <div class="recipe-ingredients">
-      <h2>Ingredients</h2>
-      <ul>
-        <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="ingredient-item">
-          <img v-if="ingredients[ingredient.id] && ingredients[ingredient.id].imagePath" 
-               :src="ingredients[ingredient.id].imagePath" 
-               :alt="ingredients[ingredient.id].name" 
-               class="ingredient-image">
-          <div class="ingredient-details">
-            <span class="ingredient-amount">{{ ingredient.amount }} {{ ingredient.unit }}</span>
-            <span class="ingredient-name">{{ ingredients[ingredient.id] ? ingredients[ingredient.id].name : 'Loading...' }}</span>
-          </div>
-        </li>
-      </ul>
-    </div>
-    <div class="recipe-instructions">
-      <h2>Instructions</h2>
-      <ol>
-        <li v-for="step in recipe.steps" :key="step.index" v-html="step.instructionsHTML"></li>
-      </ol>
-    </div>
-  </div>
-</template>
-
 <script>
+import { useRoute, useRouter } from 'vue-router';
 import { calculateKcal } from '@/utils/nutritionCalculations';
 
 export default {
   name: 'RecipePage',
-  props: {
-    recipe: {
-      type: Object,
-      required: true
+  setup() {
+    const route = useRoute();
+    const router = useRouter();
+
+    const recipeId = route.params.id;
+
+    const goBack = () => {
+      router.push('/');
+    };
+
+    return { recipeId, goBack };
+  },
+  data() {
+    return {
+      ingredients: {},
+      recipe: null
     }
   },
   methods: {
@@ -55,34 +30,84 @@ export default {
     },
     calculateCalories(recipe) {
       return calculateKcal(recipe.macros.proteins, recipe.macros.carbs, recipe.macros.fats);
-    }
-  },
-  data() {
-    return {
-      ingredients: {}
+    },
+    fetchIngredients() {
+      if (this.recipe && this.recipe.ingredients) {
+        this.recipe.ingredients.forEach(ingredient => {
+          fetch(`http://127.0.0.1:8080/ingredients/${ingredient.id}`)
+            .then(response => response.json())
+            .then(data => {
+              this.ingredients[ingredient.id] = {
+                name: data.name,
+                imagePath: data.imagePath || null
+              };
+            })
+            .catch(error => {
+              console.error(`Error fetching ingredient ${ingredient.id}:`, error);
+              this.ingredients[ingredient.id] = {
+                name: 'Unknown',
+                imagePath: null
+              };
+            });
+        });
+      }
     }
   },
   created() {
-    this.recipe.ingredients.forEach(ingredient => {
-      fetch(`http://127.0.0.1:8080/ingredients/${ingredient.id}`)
-        .then(response => response.json())
-        .then(data => {
-          this.ingredients[ingredient.id] = {
-            name: data.name,
-            imagePath: data.imagePath || null
-          };
-        })
-        .catch(error => {
-          console.error(`Error fetching ingredient ${ingredient.id}:`, error);
-          this.ingredients[ingredient.id] = {
-            name: 'Unknown',
-            imagePath: null
-          };
-        });
-    });
+    fetch(`http://127.0.0.1:8080/recipes/${this.recipeId}`)
+      .then(response => response.json())
+      .then(data => {
+        this.recipe = data;
+        this.fetchIngredients();
+      })
+      .catch(error => {
+        console.error(`Error fetching recipe ${this.recipeId}:`, error);
+        // Handle the error, e.g., show an error message to the user
+      });
   }
 }
 </script>
+
+<template>
+  <div class="recipe-page">
+    <button @click="goBack" class="back-button">Back to List</button>
+    <div v-if="recipe">
+      <a :href="recipe.websiteUrl" class="recipe-title">{{ recipe.name }}</a>
+      <img :src="recipe.imagePath" :alt="recipe.name" class="recipe-image">
+      <div class="recipe-details">
+        <p><strong>Preparation Time:</strong> {{ formatTime(recipe.totalTime) }}</p>
+        <div class="macros">
+          <span><strong>Carbs:</strong> {{ recipe.macros.carbs }}g</span>
+          <span><strong>Fats:</strong> {{ recipe.macros.fats }}g</span>
+          <span><strong>Proteins:</strong> {{ recipe.macros.proteins }}g</span>
+          <span><strong>Calories:</strong> {{ calculateCalories(recipe) }} kcal</span>
+        </div>
+      </div>
+      <div class="recipe-ingredients">
+        <h2>Ingredients</h2>
+        <ul>
+          <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="ingredient-item">
+            <img v-if="ingredients[ingredient.id] && ingredients[ingredient.id].imagePath" 
+                 :src="ingredients[ingredient.id].imagePath" 
+                 :alt="ingredients[ingredient.id].name" 
+                 class="ingredient-image">
+            <div class="ingredient-details">
+              <span class="ingredient-amount">{{ ingredient.amount }} {{ ingredient.unit }}</span>
+              <span class="ingredient-name">{{ ingredients[ingredient.id] ? ingredients[ingredient.id].name : 'Loading...' }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="recipe-instructions">
+        <h2>Instructions</h2>
+        <ol>
+          <li v-for="step in recipe.steps" :key="step.index" v-html="step.instructionsHTML"></li>
+        </ol>
+      </div>
+    </div>
+    <div v-else>Loading recipe...</div>
+  </div>
+</template>
 
 <style scoped>
 .recipe-page {
@@ -190,5 +215,14 @@ li {
   text-decoration: none;
   border-radius: 5px;
   font-weight: 600;
+}
+
+.back-button {
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 </style>

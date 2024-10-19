@@ -1,10 +1,10 @@
 <script setup>
-import RecipeList from './components/RecipeList.vue'
+import { RouterView } from 'vue-router';
 </script>
 
 <template>
   <main>
-    <RecipeList />
+    <RouterView />
   </main>
 </template>
 
