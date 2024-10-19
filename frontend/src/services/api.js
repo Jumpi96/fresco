@@ -6,19 +6,22 @@ export const api = {
   async getIngredients(lastEvaluatedId = null) {
     let url = `${API_BASE_URL}/ingredients`;
     if (lastEvaluatedId) {
-      url += `?lastEvaluatedId=${lastEvaluatedId}`;
+      params.append('lastEvaluatedId', lastEvaluatedId);
     }
-    url += `?pageSize=${pageSize}`;
+    params.append('pageSize', pageSize);
+    url += `?${params.toString()}`;
     const response = await axios.get(url);
     return response.data;
   },
 
   async getRecipes(lastEvaluatedId = null, pageSize = 12) {
     let url = `${API_BASE_URL}/recipes`;
+    const params = new URLSearchParams();
     if (lastEvaluatedId) {
-      url += `?lastEvaluatedId=${lastEvaluatedId}`;
+      params.append('lastEvaluatedId', lastEvaluatedId);
     }
-    url += `?pageSize=${pageSize}`;
+    params.append('pageSize', pageSize);
+    url += `?${params.toString()}`;
     const response = await axios.get(url);
     return response.data;
   },

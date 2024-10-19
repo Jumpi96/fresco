@@ -7,38 +7,33 @@
         :recipe="recipe" />
     </div>
     <div class="recipe-grid-footer">
-      <button @click="fetchRecipes" v-if="lastEvaluatedId" class="load-more-button">Load more...</button>
+      <button @click="loadMore" v-if="lastEvaluatedId" class="load-more-button">Load more...</button>
     </div>
   </div>
 </template>
 
 <script>
 import RecipeCard from '@/components/RecipeCard.vue';
-import { api } from '@/services/api';
+import { mapActions, mapState } from 'vuex';
 
 export default {
+  name: 'RecipeList',
   components: {
     RecipeCard
   },
-  data() {
-    return {
-      recipes: [],
-      lastEvaluatedId: null
-    };
+  computed: {
+    ...mapState('recipes', ['recipes', 'lastEvaluatedId']),
   },
   methods: {
-    async fetchRecipes() {
-      try {
-        let data = await api.getRecipes(this.lastEvaluatedId);
-        this.recipes = [...this.recipes, ...data.recipes];
-        this.lastEvaluatedId = recipesResponse.lastEvaluatedId;
-      } catch (error) {
-        console.error('Failed to fetch recipes:', error);
-      }
+    ...mapActions('recipes', ['fetchRecipes']),
+    loadMore() {
+      this.fetchRecipes(this.lastEvaluatedId);
     }
   },
-  async created() {
-    this.fetchRecipes();
+  created() {
+    if (this.recipes.length === 0) {
+      this.fetchRecipes();
+    }
   }
 };
 </script>
