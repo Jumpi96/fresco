@@ -26,7 +26,9 @@ export default {
   methods: {
     ...mapActions('recipes', ['fetchRecipe', 'fetchIngredients']),
     formatTime(time) {
-      // Convert PT15M to 15 minutes
+      if (time === 'PT0S') {
+        return '🤷‍♂️';
+      }
       const minutes = time.replace('PT', '').replace('M', '');
       return `${minutes} minutes`;
     },
@@ -51,24 +53,27 @@ export default {
       <a :href="recipe.websiteUrl" class="recipe-title">{{ recipe.name }}</a>
       <img :src="recipe.imagePath" :alt="recipe.name" class="recipe-image">
       <div class="recipe-details">
-        <p><strong>Preparation Time:</strong> {{ formatTime(recipe.totalTime) }}</p>
+        <p><strong class="recipe-details-label">Preparation Time:</strong> <span class="recipe-details-amount">{{ formatTime(recipe.totalTime) }}</span></p>
         <div class="macros">
-          <span><strong>Carbs:</strong> {{ recipe.macros.carbs }}g</span>
-          <span><strong>Fats:</strong> {{ recipe.macros.fats }}g</span>
-          <span><strong>Proteins:</strong> {{ recipe.macros.proteins }}g</span>
-          <span><strong>Calories:</strong> {{ calculateCalories(recipe) }} kcal</span>
+          <span><strong class="recipe-details-label">Carbs:</strong> <span class="recipe-details-amount">{{ recipe.macros.carbs }}g</span></span>
+          <span><strong class="recipe-details-label">Fats:</strong> <span class="recipe-details-amount">{{ recipe.macros.fats }}g</span></span>
+          <span><strong class="recipe-details-label">Proteins:</strong> <span class="recipe-details-amount">{{ recipe.macros.proteins }}g</span></span>
+          <span><strong class="recipe-details-label">Calories:</strong> <span class="recipe-details-amount">{{ calculateCalories(recipe) }} kcal</span></span>
         </div>
       </div>
       <div class="recipe-ingredients">
         <h2>Ingredients</h2>
-        <ul>
+        <ul class="ingredients-grid">
           <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="ingredient-item">
             <img v-if="ingredients[ingredient.id] && ingredients[ingredient.id].imagePath" 
                  :src="ingredients[ingredient.id].imagePath" 
                  :alt="ingredients[ingredient.id].name" 
                  class="ingredient-image">
             <div class="ingredient-details">
-              <span class="ingredient-amount">{{ ingredient.amount }} {{ ingredient.unit }}</span>
+              <span class="ingredient-amount">
+                <template v-if="ingredient.amount !== 0">{{ ingredient.amount }} </template>
+                {{ ingredient.unit }}
+              </span>
               <span class="ingredient-name">{{ ingredients[ingredient.id] ? ingredients[ingredient.id].name : 'Loading...' }}</span>
             </div>
           </li>
@@ -110,8 +115,9 @@ export default {
 .ingredient-image {
   width: 50px;
   height: 50px;
-  margin-right: 5px;
-  vertical-align: middle;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-right: 10px;
 }
 
 .recipe-details {
@@ -127,29 +133,51 @@ export default {
 }
 
 .ingredient-details {
+  flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+.ingredients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 0;
+  list-style-type: none;
+}
+
+.ingredient-item {
+  display: flex;
   align-items: flex-start;
-  margin-bottom: 10px;
-}
-
-.ingredient-details > * {
-  margin-bottom: 5px;
-}
-
-.ingredient-details > *:last-child {
-  margin-bottom: 0;
+  background-color: #f8f8f8;
+  padding: 10px;
+  border-radius: 8px;
 }
 
 .ingredient-amount {
+  font-weight: bold;
   color: #666;
-  font-style: italic;
 }
 
 .macros {
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
+}
+
+.macros span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.recipe-details-label {
+  font-weight: bold;
+}
+
+.recipe-details-amount {
+  font-weight: bold;
+  color: #666;
 }
 
 .recipe-ingredients, .recipe-instructions {
