@@ -26,7 +26,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         run: |
@@ -42,15 +42,8 @@ jobs:
       - name: Terraform Apply
         if: success()
         run: terraform apply -auto-approve tfplan
+        id: apply
         working-directory: deploy
-
-      - name: Terraform Output
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version: 1.0.0
-          tf_actions_subcommand: 'output'
-          tf_actions_working_dir: 'deploy'
-        id: tf_output
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -68,14 +61,8 @@ jobs:
       - name: Deploy to S3
         run: |
           # Extract S3 bucket name from Terraform output
-          S3_BUCKET_NAME=$(echo '${{ steps.tf_output.outputs.stdout }}' | jq -r '.frontend_bucket_name.value')
+          S3_BUCKET_NAME=${{ steps.apply.outputs.frontend_bucket_name }}
           echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
-          
-          # Check if S3_BUCKET_NAME is empty
-          if [ -z "$S3_BUCKET_NAME" ]; then
-            echo "Error: Failed to extract S3 bucket name"
-            exit 1
-          fi
           
           # Deploy to S3
           cd frontend
@@ -84,14 +71,8 @@ jobs:
       - name: Invalidate CloudFront
         run: |
           # Extract CloudFront Distribution ID from Terraform output
-          DISTRIBUTION_ID=$(echo '${{ steps.tf_output.outputs.stdout }}' | jq -r '.cloudfront_distribution_id.value')
+          DISTRIBUTION_ID=${{ steps.apply.outputs.cloudfront_distribution_id }}
           echo "Extracted CloudFront Distribution ID: $DISTRIBUTION_ID"
-          
-          # Check if DISTRIBUTION_ID is empty
-          if [ -z "$DISTRIBUTION_ID" ]; then
-            echo "Error: Failed to extract CloudFront Distribution ID"
-            exit 1
-          fi
           
           # Invalidate CloudFront
           aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
