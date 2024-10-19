@@ -61,6 +61,13 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: Fetch Terraform Outputs
+        run: |
+          terraform output -raw frontend_bucket_name || echo "No frontend_bucket_name found"
+          terraform output -raw cloudfront_distribution_id || echo "No cloudfront_distribution_id found"
+        working-directory: deploy
+
+
       - name: Deploy to S3
         run: |
           # Extract S3 bucket name from Terraform output
