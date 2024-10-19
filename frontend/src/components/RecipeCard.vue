@@ -21,7 +21,7 @@
 
         <div class="info-item">
           <i class="fa fa-fire"></i>
-          <span>{{ calculateCalories(recipe.macros) }} kcal</span>
+          <span>{{ calculateCalories(recipe) }} kcal</span>
         </div>
       </div>
 
@@ -32,11 +32,13 @@
 </template>
 
 <script>
+import { calculateKcal } from '@/utils/nutritionCalculations';
+
 export default {
   props: ['recipe'],
   methods: {
-    calculateCalories(macros) {
-      return Math.round(4 * (macros.proteins + macros.carbs) + macros.fats * 9);
+    calculateCalories(recipe) {
+      return calculateKcal(recipe.macros.proteins, recipe.macros.carbs, recipe.macros.fats);
     }
   }
 };
