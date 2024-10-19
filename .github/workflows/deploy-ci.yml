@@ -60,13 +60,7 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: frontend
-
-      - name: Fetch Terraform Outputs
-        run: |
-           || echo "No cloudfront_distribution_id found"
-        working-directory: deploy
-
-
+        
       - name: Deploy to S3
         run: |
           cd deploy
