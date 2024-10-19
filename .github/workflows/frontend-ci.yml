@@ -45,7 +45,6 @@ jobs:
 
       # Run tests
       - name: Run tests
-        if: false
         working-directory: frontend
         run: npm run test:unit
 
