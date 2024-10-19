@@ -20,9 +20,21 @@ resource "aws_s3_bucket_website_configuration" "frontend" {
   }
 }
 
+# Allow public access to the S3 bucket
+resource "aws_s3_bucket_public_access_block" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
 # S3 bucket policy to allow public read access
 resource "aws_s3_bucket_policy" "frontend" {
   bucket = aws_s3_bucket.frontend.id
+  depends_on = [aws_s3_bucket_public_access_block.frontend]
+
 
   policy = jsonencode({
     Version = "2012-10-17"

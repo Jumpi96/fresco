@@ -46,7 +46,7 @@ jobs:
       # Run tests
       - name: Run tests
         working-directory: frontend
-        run: npm run test:unit
+        run: npm run test
 
       # Build the Vue app
       - name: Build Vue app
