@@ -41,12 +41,8 @@ jobs:
 
       - name: Terraform Apply
         if: success()
-        run: terraform apply -auto-approve tfplan
-        working-directory: deploy
-
-      - name: Terraform Output
-        id: tf_output
         run: |
+          terraform apply -auto-approve tfplan
           echo 'frontend_bucket_name=$(terraform output -raw frontend_bucket_name)' >> "$GITHUB_OUTPUT"
           echo 'cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)' >> "$GITHUB_OUTPUT"
         working-directory: deploy
@@ -67,7 +63,7 @@ jobs:
       - name: Deploy to S3
         run: |
           # Extract S3 bucket name from Terraform output
-          S3_BUCKET_NAME=${{ steps.tf_output.outputs.frontend_bucket_name }}
+          S3_BUCKET_NAME=${{ steps.apply.outputs.frontend_bucket_name }}
           echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
           
           # Deploy to S3
@@ -77,7 +73,7 @@ jobs:
       - name: Invalidate CloudFront
         run: |
           # Extract CloudFront Distribution ID from Terraform output
-          DISTRIBUTION_ID=${{ steps.tf_output.outputs.cloudfront_distribution_id }}
+          DISTRIBUTION_ID=${{ steps.apply.outputs.cloudfront_distribution_id }}
           echo "Extracted CloudFront Distribution ID: $DISTRIBUTION_ID"
           
           # Invalidate CloudFront
