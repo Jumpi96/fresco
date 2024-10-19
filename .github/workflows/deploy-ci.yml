@@ -1,9 +1,14 @@
 name: Deploy with Terraform
 
+#on:
+#  push:
+#    tags:
+#      - '*'
+
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
 
 jobs:
   deploy:
