@@ -1,7 +1,7 @@
 <script>
 import { useRoute, useRouter } from 'vue-router';
+import { mapState, mapActions } from 'vuex';
 import { calculateKcal } from '@/utils/nutritionCalculations';
-import { api } from '@/services/api';
 
 export default {
   name: 'RecipePage',
@@ -17,13 +17,14 @@ export default {
 
     return { recipeId, goBack };
   },
-  data() {
-    return {
-      ingredients: {},
-      recipe: null
+  computed: {
+    ...mapState('recipes', ['currentRecipe', 'ingredients']),
+    recipe() {
+      return this.currentRecipe;
     }
   },
   methods: {
+    ...mapActions('recipes', ['fetchRecipe', 'fetchIngredients']),
     formatTime(time) {
       // Convert PT15M to 15 minutes
       const minutes = time.replace('PT', '').replace('M', '');
@@ -31,33 +32,14 @@ export default {
     },
     calculateCalories(recipe) {
       return calculateKcal(recipe.macros.proteins, recipe.macros.carbs, recipe.macros.fats);
-    },
-    async fetchIngredients() {
-      if (this.recipe && this.recipe.ingredients) {
-        this.recipe.ingredients.forEach(ingredient => {
-          api.getIngredient(ingredient.id)
-            .then(data => {
-              this.ingredients[ingredient.id] = {
-                name: data.name,
-                imagePath: data.imagePath || null
-              };
-            })
-            .catch(error => {
-              console.error(`Error fetching ingredient ${ingredient.id}:`, error);
-            });
-        });
-      }
     }
   },
   created() {
-    api.getRecipe(this.recipeId)
-      .then(data => {
-        this.recipe = data;
-        this.fetchIngredients();
-      })
-      .catch(error => {
-        console.error(`Error fetching recipe ${this.recipeId}:`, error);
-      });
+    this.fetchRecipe(this.recipeId).then(() => {
+      if (this.recipe) {
+        this.fetchIngredients(this.recipe.ingredients.map(ing => ing.id));
+      }
+    });
   }
 }
 </script>
