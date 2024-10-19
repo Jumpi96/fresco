@@ -1,4 +1,4 @@
-name: Deploy with Terraform
+name: fresco-deploy
 
 #on:
 #  push:
