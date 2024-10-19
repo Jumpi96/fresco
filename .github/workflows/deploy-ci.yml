@@ -57,9 +57,13 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: Get S3 bucket name
+        run: echo "S3_BUCKET_NAME=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_ENV
+        working-directory: deploy
+
       - name: Deploy to S3
         run: |
-          aws s3 sync dist/ s3://$(terraform output -raw frontend_bucket_name) --delete
+          aws s3 sync dist/ s3://${{ env.S3_BUCKET_NAME }} --delete
         working-directory: frontend
 
       - name: Invalidate CloudFront
