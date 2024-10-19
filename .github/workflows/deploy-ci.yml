@@ -60,9 +60,9 @@ jobs:
       - name: Deploy to S3
         run: |
           cd deploy
-          RAW_S3_BUCKET_NAME=$(terraform output -raw frontend_bucket_name)
-          S3_BUCKET_NAME=$(echo "$RAW_S3_BUCKET_NAME" | sed 's/.*frontend_bucket_name = //')
-          echo "S3 bucket name: $S3_BUCKET_NAME"
+          TERRAFORM_OUTPUT=$(terraform output)
+          S3_BUCKET_NAME=$(echo "$TERRAFORM_OUTPUT" | grep frontend_bucket_name | awk -F' = ' '{print $2}' | tr -d '"')
+          echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
           cd ../frontend
           aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete
 
