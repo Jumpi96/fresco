@@ -63,25 +63,21 @@ jobs:
 
       - name: Fetch Terraform Outputs
         run: |
-          terraform output -raw cloudfront_distribution_id || echo "No cloudfront_distribution_id found"
+           || echo "No cloudfront_distribution_id found"
         working-directory: deploy
 
 
       - name: Deploy to S3
         run: |
-          # Extract S3 bucket name from Terraform output
           cd deploy
           S3_BUCKET_NAME=$(terraform output -raw frontend_bucket_name)
           echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
-          
-          # Deploy to S3
           cd ../frontend
           aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete
 
       - name: Invalidate CloudFront
         run: |
-          # Extract CloudFront Distribution ID from Terraform output
-          DISTRIBUTION_ID=${{ steps.apply.outputs.cloudfront_distribution_id }}
+          DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
           echo "Extracted CloudFront Distribution ID: $DISTRIBUTION_ID"
           
           # Invalidate CloudFront
