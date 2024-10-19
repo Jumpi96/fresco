@@ -44,6 +44,14 @@ jobs:
         run: terraform apply -auto-approve tfplan
         working-directory: deploy
 
+      - name: Terraform Output
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: 1.0.0
+          tf_actions_subcommand: 'output'
+          tf_actions_working_dir: 'deploy'
+        id: tf_output
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -59,15 +67,31 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          cd deploy
-          S3_BUCKET_NAME=$(terraform output -raw frontend_bucket_name)
-          echo "Raw S3 bucket name output: $S3_BUCKET_NAME"
-          S3_BUCKET_NAME=$(echo "$S3_BUCKET_NAME" | tr -d '\n' | tr -d '\r')
-          echo "Cleaned S3 bucket name: $S3_BUCKET_NAME"
-          cd ../frontend
+          # Extract S3 bucket name from Terraform output
+          S3_BUCKET_NAME=$(echo '${{ steps.tf_output.outputs.stdout }}' | jq -r '.frontend_bucket_name.value')
+          echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
+          
+          # Check if S3_BUCKET_NAME is empty
+          if [ -z "$S3_BUCKET_NAME" ]; then
+            echo "Error: Failed to extract S3 bucket name"
+            exit 1
+          fi
+          
+          # Deploy to S3
+          cd frontend
           aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete
 
       - name: Invalidate CloudFront
         run: |
-          aws cloudfront create-invalidation --distribution-id $(terraform output -raw cloudfront_distribution_id) --paths "/*"
-        working-directory: deploy
+          # Extract CloudFront Distribution ID from Terraform output
+          DISTRIBUTION_ID=$(echo '${{ steps.tf_output.outputs.stdout }}' | jq -r '.cloudfront_distribution_id.value')
+          echo "Extracted CloudFront Distribution ID: $DISTRIBUTION_ID"
+          
+          # Check if DISTRIBUTION_ID is empty
+          if [ -z "$DISTRIBUTION_ID" ]; then
+            echo "Error: Failed to extract CloudFront Distribution ID"
+            exit 1
+          fi
+          
+          # Invalidate CloudFront
+          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
