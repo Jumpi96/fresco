@@ -1,5 +1,5 @@
 <script>
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { mapState, mapActions } from 'vuex';
 import { calculateKcal } from '@/utils/nutritionCalculations';
 
@@ -7,15 +7,8 @@ export default {
   name: 'RecipePage',
   setup() {
     const route = useRoute();
-    const router = useRouter();
-
     const recipeId = route.params.id;
-
-    const goBack = () => {
-      router.push('/');
-    };
-
-    return { recipeId, goBack };
+    return { recipeId };
   },
   computed: {
     ...mapState('recipes', ['currentRecipe', 'ingredients']),
@@ -48,7 +41,6 @@ export default {
 
 <template>
   <div class="recipe-page">
-    <button @click="goBack" class="back-button">Back to List</button>
     <div v-if="recipe">
       <a :href="recipe.websiteUrl" class="recipe-title">{{ recipe.name }}</a>
       <img :src="recipe.imagePath" :alt="recipe.name" class="recipe-image">
@@ -219,14 +211,5 @@ li {
   text-decoration: none;
   border-radius: 5px;
   font-weight: 600;
-}
-
-.back-button {
-  margin-bottom: 20px;
-  padding: 10px 20px;
-  background-color: #f0f0f0;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
 }
 </style>
