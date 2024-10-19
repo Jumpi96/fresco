@@ -41,11 +41,8 @@ jobs:
 
       - name: Terraform Apply
         if: success()
-        id: apply
         run: |
           terraform apply -auto-approve tfplan
-          echo 'frontend_bucket_name=$(terraform output -raw frontend_bucket_name)' >> "$GITHUB_OUTPUT"
-          echo 'cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)' >> "$GITHUB_OUTPUT"
         working-directory: deploy
 
       - name: Setup Node.js
@@ -60,12 +57,13 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: frontend
-        
+
       - name: Deploy to S3
         run: |
           cd deploy
           S3_BUCKET_NAME=$(terraform output -raw frontend_bucket_name)
           echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
+
           cd ../frontend
           aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete
 
@@ -74,5 +72,5 @@ jobs:
           DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
           echo "Extracted CloudFront Distribution ID: $DISTRIBUTION_ID"
           
-          # Invalidate CloudFront
           aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+        working-directory: deploy
