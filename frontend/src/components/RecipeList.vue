@@ -7,13 +7,14 @@
         :recipe="recipe" />
     </div>
     <div class="recipe-grid-footer">
-      <button @click="loadMoreRecipes" v-if="lastEvaluatedId" class="load-more-button">Load more...</button>
+      <button @click="fetchRecipes" v-if="lastEvaluatedId" class="load-more-button">Load more...</button>
     </div>
   </div>
 </template>
 
 <script>
 import RecipeCard from '@/components/RecipeCard.vue';
+import { api } from '@/services/api';
 
 export default {
   components: {
@@ -26,26 +27,17 @@ export default {
     };
   },
   methods: {
-    fetchRecipes() {
-      let url = 'http://127.0.0.1:8080/recipes?pageSize=12';
-      if (this.lastEvaluatedId) {
-        url += `&lastEvaluatedId=${this.lastEvaluatedId}`;
+    async fetchRecipes() {
+      try {
+        let data = await api.getRecipes(this.lastEvaluatedId);
+        this.recipes = [...this.recipes, ...data.recipes];
+        this.lastEvaluatedId = recipesResponse.lastEvaluatedId;
+      } catch (error) {
+        console.error('Failed to fetch recipes:', error);
       }
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          this.recipes = [...this.recipes, ...data.recipes];
-          this.lastEvaluatedId = data.lastEvaluatedId;
-        })
-        .catch(error => {
-          console.error('Error fetching recipes:', error);
-        });
-    },
-    loadMoreRecipes() {
-      this.fetchRecipes();
     }
   },
-  created() {
+  async created() {
     this.fetchRecipes();
   }
 };

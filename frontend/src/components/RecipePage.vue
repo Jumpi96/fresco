@@ -1,6 +1,7 @@
 <script>
 import { useRoute, useRouter } from 'vue-router';
 import { calculateKcal } from '@/utils/nutritionCalculations';
+import { api } from '@/services/api';
 
 export default {
   name: 'RecipePage',
@@ -31,11 +32,10 @@ export default {
     calculateCalories(recipe) {
       return calculateKcal(recipe.macros.proteins, recipe.macros.carbs, recipe.macros.fats);
     },
-    fetchIngredients() {
+    async fetchIngredients() {
       if (this.recipe && this.recipe.ingredients) {
         this.recipe.ingredients.forEach(ingredient => {
-          fetch(`http://127.0.0.1:8080/ingredients/${ingredient.id}`)
-            .then(response => response.json())
+          api.getIngredient(ingredient.id)
             .then(data => {
               this.ingredients[ingredient.id] = {
                 name: data.name,
@@ -44,25 +44,19 @@ export default {
             })
             .catch(error => {
               console.error(`Error fetching ingredient ${ingredient.id}:`, error);
-              this.ingredients[ingredient.id] = {
-                name: 'Unknown',
-                imagePath: null
-              };
             });
         });
       }
     }
   },
   created() {
-    fetch(`http://127.0.0.1:8080/recipes/${this.recipeId}`)
-      .then(response => response.json())
+    api.getRecipe(this.recipeId)
       .then(data => {
         this.recipe = data;
         this.fetchIngredients();
       })
       .catch(error => {
         console.error(`Error fetching recipe ${this.recipeId}:`, error);
-        // Handle the error, e.g., show an error message to the user
       });
   }
 }
