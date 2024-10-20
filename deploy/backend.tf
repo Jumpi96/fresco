@@ -25,6 +25,18 @@ resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
     name      = "FRESCO_ENV"
     value     = "prod"
   }
+
+  setting {
+    namespace = "aws:ec2:instances"
+    name      = "InstanceTypes"
+    value     = "t3.micro,t3.small"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "LaunchTemplateTagPropagationEnabled"
+    value     = "true"
+  }
 }
 
 resource "aws_iam_instance_profile" "eb_instance_profile" {
