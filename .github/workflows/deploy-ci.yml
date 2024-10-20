@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload JAR to S3
         run: |
-          aws s3 cp target/scala-2.13/backend-assembly-*.jar s3://${{ needs.infrastructure.outputs.fresco_bucket_name }}/backend-assembly.jar
+          aws s3 cp target/scala-3.3.3/backend-assembly-*.jar s3://${{ needs.infrastructure.outputs.fresco_bucket_name }}/backend-assembly.jar
         working-directory: backend
 
       - name: Deploy to Elastic Beanstalk
