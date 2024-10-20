@@ -50,8 +50,12 @@ jobs:
         working-directory: frontend
 
       - name: Build frontend
-        run: npm run build
-        working-directory: frontend
+        run: |
+          cd deploy
+          echo "VITE_FRESCO_API_BASE_URL=$(terraform output -raw elastic_beanstalk_url)" > ../frontend/.env
+          echo "Extracted Elastic Beanstalk URL: $(terraform output -raw elastic_beanstalk_url)"
+          cd ../frontend
+          npm run build
 
       - name: Deploy to S3
         run: |
