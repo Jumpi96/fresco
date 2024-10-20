@@ -11,8 +11,15 @@ on:
       - main
 
 jobs:
-  deploy:
+  infrastructure:
     runs-on: ubuntu-latest
+    outputs:
+      elastic_beanstalk_url: ${{ steps.terraform_outputs.outputs.elastic_beanstalk_url }}
+      frontend_bucket_name: ${{ steps.terraform_outputs.outputs.frontend_bucket_name }}
+      cloudfront_distribution_id: ${{ steps.terraform_outputs.outputs.cloudfront_distribution_id }}
+      recipes_table_name: ${{ steps.terraform_outputs.outputs.recipes_table_name }}
+      ingredients_table_name: ${{ steps.terraform_outputs.outputs.ingredients_table_name }}
+      elastic_beanstalk_environment_name: ${{ steps.terraform_outputs.outputs.elastic_beanstalk_environment_name }}
 
     steps:
       - name: Checkout code
@@ -45,6 +52,32 @@ jobs:
           terraform apply -auto-approve tfplan
         working-directory: deploy
 
+      - name: Get Terraform Outputs
+        id: terraform_outputs
+        run: |
+          echo "elastic_beanstalk_url=$(terraform output -raw elastic_beanstalk_url)" >> $GITHUB_OUTPUT
+          echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_OUTPUT
+          echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
+          echo "recipes_table_name=$(terraform output -raw recipes_table_name)" >> $GITHUB_OUTPUT
+          echo "ingredients_table_name=$(terraform output -raw ingredients_table_name)" >> $GITHUB_OUTPUT
+          echo "elastic_beanstalk_environment_name=$(terraform output -raw elastic_beanstalk_environment_name)" >> $GITHUB_OUTPUT
+        working-directory: deploy
+
+  frontend:
+    needs: infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -56,28 +89,34 @@ jobs:
 
       - name: Build frontend
         run: |
-          cd deploy
-          echo "VITE_FRESCO_API_BASE_URL=$(terraform output -raw elastic_beanstalk_url)" > ../frontend/.env
-          echo "Extracted Elastic Beanstalk URL: $(terraform output -raw elastic_beanstalk_url)"
-          cd ../frontend
+          echo "VITE_FRESCO_API_BASE_URL=${{ needs.infrastructure.outputs.elastic_beanstalk_url }}" > .env
+          echo "Extracted Elastic Beanstalk URL: ${{ needs.infrastructure.outputs.elastic_beanstalk_url }}"
           npm run build
+        working-directory: frontend
 
       - name: Deploy to S3
         run: |
-          cd deploy
-          S3_BUCKET_NAME=$(terraform output -raw frontend_bucket_name)
-          echo "Extracted S3 bucket name: $S3_BUCKET_NAME"
-
-          cd ../frontend
-          aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete
+          aws s3 sync dist/ s3://${{ needs.infrastructure.outputs.frontend_bucket_name }} --delete
+        working-directory: frontend
 
       - name: Invalidate CloudFront
         run: |
-          DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
-          echo "Extracted CloudFront Distribution ID: $DISTRIBUTION_ID"
-          
-          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
-        working-directory: deploy
+          aws cloudfront create-invalidation --distribution-id ${{ needs.infrastructure.outputs.cloudfront_distribution_id }} --paths "/*"
+
+  backend:
+    needs: infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
 
       - name: Set up JDK 11
         uses: actions/setup-java@v3
@@ -87,11 +126,6 @@ jobs:
 
       - name: Create application.conf
         run: |
-          cd deploy
-          FRESCO_RECIPES=$(terraform output -raw recipes_table_name)
-          FRESCO_INGREDIENTS=$(terraform output -raw ingredients_table_name)
-          FRESCO_BUCKET=$(terraform output -raw frontend_bucket_name)
-          cd ../backend
           cat << EOF > src/main/resources/application.conf
           akka {
             loglevel = "INFO"
@@ -109,14 +143,15 @@ jobs:
             prod {
               aws {
                 storage {
-                  recipesTableName = "$FRESCO_RECIPES"
-                  ingredientsTableName = "$FRESCO_INGREDIENTS"
-                  bucketName = "$FRESCO_BUCKET"
+                  recipesTableName = "${{ needs.infrastructure.outputs.recipes_table_name }}"
+                  ingredientsTableName = "${{ needs.infrastructure.outputs.ingredients_table_name }}"
+                  bucketName = "${{ needs.infrastructure.outputs.frontend_bucket_name }}"
                 }
               }
             }
           }
           EOF
+        working-directory: backend
 
       - name: Build Scala application
         run: sbt clean assembly
@@ -124,13 +159,11 @@ jobs:
 
       - name: Deploy to Elastic Beanstalk
         run: |
-          EB_ENV_NAME=$(terraform output -raw elastic_beanstalk_environment_name)
           aws elasticbeanstalk create-application-version \
             --application-name fresco-backend \
             --version-label ${{ github.sha }} \
-            --source-bundle S3Bucket=$S3_BUCKET_NAME,S3Key=backend-assembly.jar
+            --source-bundle S3Bucket=${{ needs.infrastructure.outputs.frontend_bucket_name }},S3Key=backend-assembly.jar
 
           aws elasticbeanstalk update-environment \
-            --environment-name $EB_ENV_NAME \
+            --environment-name ${{ needs.infrastructure.outputs.elastic_beanstalk_environment_name }} \
             --version-label ${{ github.sha }}
-        working-directory: deploy
