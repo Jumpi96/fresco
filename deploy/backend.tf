@@ -42,3 +42,7 @@ resource "aws_iam_instance_profile" "eb_instance_profile" {
 output "elastic_beanstalk_url" {
   value = aws_elastic_beanstalk_environment.fresco_backend_env.cname
 }
+
+output "elastic_beanstalk_environment_name" {
+  value = aws_elastic_beanstalk_environment.fresco_backend_env.name
+}

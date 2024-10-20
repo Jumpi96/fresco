@@ -44,3 +44,11 @@ resource "aws_dynamodb_table" "ingredients" {
     Environment = "Production"
   }
 }
+
+output "recipes_table_name" {
+  value = aws_dynamodb_table.recipes.name
+}
+
+output "ingredients_table_name" {
+  value = aws_dynamodb_table.ingredients.name
+}
