@@ -31,3 +31,6 @@ lazy val root = (project in file(".")).
       "org.scalatestplus" %% "mockito-5-10"             % "3.2.18.0"      % Test,
     )
   )
+
+assembly / assemblyJarName := "backend-assembly.jar"
+assembly / mainClass := Some("com.fresco.app.FrescoApp")

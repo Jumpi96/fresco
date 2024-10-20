@@ -69,3 +69,26 @@ jobs:
           
           aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
         working-directory: deploy
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'corretto'
+
+      - name: Build Scala application
+        run: sbt clean assembly
+        working-directory: backend
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          EB_ENV_NAME=$(terraform output -raw elastic_beanstalk_environment_name)
+          aws elasticbeanstalk create-application-version \
+            --application-name fresco-backend \
+            --version-label ${{ github.sha }} \
+            --source-bundle S3Bucket=$S3_BUCKET_NAME,S3Key=backend-assembly.jar
+
+          aws elasticbeanstalk update-environment \
+            --environment-name $EB_ENV_NAME \
+            --version-label ${{ github.sha }}
+        working-directory: deploy

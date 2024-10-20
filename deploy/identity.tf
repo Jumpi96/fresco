@@ -46,10 +46,11 @@ resource "aws_iam_user" "backend_user" {
   name = "backend_user"
 }
 
-# Attach policies for read-only S3 and DynamoDB access to the backend user
-resource "aws_iam_user_policy" "backend_user_policy" {
-  name = "backend_user_policy"
-  user = aws_iam_user.backend_user.name
+# Create IAM policy for read-only S3 and DynamoDB access
+resource "aws_iam_policy" "backend_access_policy" {
+  name        = "backend-access-policy"
+  path        = "/"
+  description = "IAM policy for backend access to S3 and DynamoDB"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -78,6 +79,12 @@ resource "aws_iam_user_policy" "backend_user_policy" {
   })
 }
 
+# Attach the policy to the backend user
+resource "aws_iam_user_policy_attachment" "backend_user_policy_attachment" {
+  user       = aws_iam_user.backend_user.name
+  policy_arn = aws_iam_policy.backend_access_policy.arn
+}
+
 # Create access keys for the backend user
 resource "aws_iam_access_key" "backend_user_access_key" {
   user = aws_iam_user.backend_user.name
@@ -97,4 +104,31 @@ output "crawler_user_access_secret" {
 output "backend_user_access_secret" {
   value = aws_iam_access_key.backend_user_access_key.secret
   sensitive = true
+}
+
+resource "aws_iam_role" "eb_instance_role" {
+  name = "fresco-backend-eb-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eb_instance_role_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
+  role       = aws_iam_role.eb_instance_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eb_instance_role_s3_dynamodb_policy" {
+  policy_arn = aws_iam_policy.backend_access_policy.arn
+  role       = aws_iam_role.eb_instance_role.name
 }
