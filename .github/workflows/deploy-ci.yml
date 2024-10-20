@@ -91,7 +91,7 @@ jobs:
 
       - name: Build frontend
         run: |
-          echo "VITE_FRESCO_API_BASE_URL=https://${{ needs.infrastructure.outputs.elastic_beanstalk_url }}" > .env
+          echo "VITE_FRESCO_API_BASE_URL=http://${{ needs.infrastructure.outputs.elastic_beanstalk_url }}" > .env
           echo "Extracted Elastic Beanstalk URL: ${{ needs.infrastructure.outputs.elastic_beanstalk_url }}"
           npm run build
         working-directory: frontend
