@@ -15,16 +15,16 @@ After starting the sample with `sbt run` the following requests can be made:
 
 List all users:
 
-    curl http://localhost:8080/users
+    curl http://localhost:5000/users
 
 Create a user:
 
-    curl -XPOST http://localhost:8080/users -d '{"name": "Liselott", "age": 32, "countryOfResidence": "Norway"}' -H "Content-Type:application/json"
+    curl -XPOST http://localhost:5000/users -d '{"name": "Liselott", "age": 32, "countryOfResidence": "Norway"}' -H "Content-Type:application/json"
 
 Get the details of one user:
 
-    curl http://localhost:8080/users/Liselott
+    curl http://localhost:5000/users/Liselott
 
 Delete a user:
 
-    curl -XDELETE http://localhost:8080/users/Liselott
+    curl -XDELETE http://localhost:5000/users/Liselott

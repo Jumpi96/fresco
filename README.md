@@ -67,7 +67,7 @@ The frontend will be available at `http://localhost:5173`.
    sbt run
    ```
 
-The backend API will be available at `http://localhost:8080`.
+The backend API will be available at `http://localhost:5000`.
 
 ## 🧪 Running Tests
 
