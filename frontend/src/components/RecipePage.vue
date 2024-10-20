@@ -2,13 +2,15 @@
 import { useRoute } from 'vue-router';
 import { mapState, mapActions } from 'vuex';
 import { calculateKcal } from '@/utils/nutritionCalculations';
+import { ref } from 'vue';
 
 export default {
   name: 'RecipePage',
   setup() {
     const route = useRoute();
     const recipeId = route.params.id;
-    return { recipeId };
+    const servings = ref(1);
+    return { recipeId, servings };
   },
   computed: {
     ...mapState('recipes', ['currentRecipe', 'ingredients']),
@@ -27,6 +29,13 @@ export default {
     },
     calculateCalories(recipe) {
       return calculateKcal(recipe.macros.proteins, recipe.macros.carbs, recipe.macros.fats);
+    },
+    adjustServings(change) {
+      this.servings = Math.max(1, this.servings + change);
+    },
+    calculateAdjustedAmount(amount) {
+      const adjusted = (amount * this.servings).toFixed(2);
+      return parseFloat(adjusted).toString();
     }
   },
   created() {
@@ -54,7 +63,14 @@ export default {
         </div>
       </div>
       <div class="recipe-ingredients">
-        <h2>Ingredients</h2>
+        <div class="ingredients-header">
+          <h2>Ingredients</h2>
+          <div class="servings-adjuster">
+            <button @click="adjustServings(-1)" :disabled="servings <= 1">-</button>
+            <span>{{ servings }} {{ servings === 1 ? 'serving' : 'servings' }}</span>
+            <button @click="adjustServings(1)">+</button>
+          </div>
+        </div>
         <ul class="ingredients-grid">
           <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="ingredient-item">
             <img v-if="ingredients[ingredient.id] && ingredients[ingredient.id].imagePath" 
@@ -63,7 +79,9 @@ export default {
                  class="ingredient-image">
             <div class="ingredient-details">
               <span class="ingredient-amount">
-                <template v-if="ingredient.amount !== 0">{{ ingredient.amount }} </template>
+                <template v-if="ingredient.amount !== 0">
+                  {{ calculateAdjustedAmount(ingredient.amount) }}
+                </template>
                 {{ ingredient.unit }}
               </span>
               <span class="ingredient-name">{{ ingredients[ingredient.id] ? ingredients[ingredient.id].name : 'Loading...' }}</span>
@@ -211,5 +229,38 @@ li {
   text-decoration: none;
   border-radius: 5px;
   font-weight: 600;
+}
+
+.ingredients-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.servings-adjuster {
+  display: flex;
+  align-items: center;
+}
+
+.servings-adjuster button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin: 0 5px;
+  cursor: pointer;
+  font-size: 1.2em;
+  border-radius: 4px;
+}
+
+.servings-adjuster button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.servings-adjuster span {
+  font-weight: bold;
+  margin: 0 10px;
 }
 </style>

@@ -137,5 +137,51 @@ describe('RecipePage', () => {
     expect(instructions[0].html()).toContain('<p>Step 1</p>');
     expect(instructions[1].html()).toContain('<p>Step 2</p>');
   });
-});
 
+  it('adjusts servings and updates ingredient amounts', async () => {
+    const wrapper = mount(RecipePage, {
+      global: {
+        plugins: [mockStore],
+        stubs: ['router-link']
+      }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    // Check initial servings
+    expect(wrapper.find('.servings-adjuster span').text()).toBe('1 serving');
+
+    // Check initial ingredient amounts
+    let ingredients = wrapper.findAll('.ingredient-item');
+    expect(ingredients[0].find('.ingredient-amount').text()).toBe('100 g');
+    expect(ingredients[1].find('.ingredient-amount').text()).toBe('2 tbsp');
+
+    // Increase servings
+    await wrapper.find('.servings-adjuster button:last-child').trigger('click');
+
+    // Check updated servings
+    expect(wrapper.find('.servings-adjuster span').text()).toBe('2 servings');
+
+    // Check updated ingredient amounts
+    ingredients = wrapper.findAll('.ingredient-item');
+    expect(ingredients[0].find('.ingredient-amount').text()).toBe('200 g');
+    expect(ingredients[1].find('.ingredient-amount').text()).toBe('4 tbsp');
+
+    // Decrease servings
+    await wrapper.find('.servings-adjuster button:first-child').trigger('click');
+
+    // Check updated servings
+    expect(wrapper.find('.servings-adjuster span').text()).toBe('1 serving');
+
+    // Check updated ingredient amounts
+    ingredients = wrapper.findAll('.ingredient-item');
+    expect(ingredients[0].find('.ingredient-amount').text()).toBe('100 g');
+    expect(ingredients[1].find('.ingredient-amount').text()).toBe('2 tbsp');
+
+    // Try to decrease below 1 serving
+    await wrapper.find('.servings-adjuster button:first-child').trigger('click');
+
+    // Check that servings didn't go below 1
+    expect(wrapper.find('.servings-adjuster span').text()).toBe('1 serving');
+  });
+});
