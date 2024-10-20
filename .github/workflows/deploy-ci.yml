@@ -80,6 +80,39 @@ jobs:
           java-version: '11'
           distribution: 'corretto'
 
+      - name: Create application.conf
+        run: |
+          cd deploy
+          FRESCO_RECIPES=$(terraform output -raw recipes_table_name)
+          FRESCO_INGREDIENTS=$(terraform output -raw ingredients_table_name)
+          FRESCO_BUCKET=$(terraform output -raw frontend_bucket_name)
+          cd ../backend
+          cat << EOF > src/main/resources/application.conf
+          akka {
+            loglevel = "INFO"
+            loggers = ["akka.event.slf4j.Slf4jLogger"]
+            license-key = "${{ secrets.AKKA_LICENSE_KEY }}"
+          }
+
+          fresco {
+            env = "prod"
+
+            routes {
+              ask-timeout = 10s
+            }
+
+            prod {
+              aws {
+                storage {
+                  recipesTableName = "$FRESCO_RECIPES"
+                  ingredientsTableName = "$FRESCO_INGREDIENTS"
+                  bucketName = "$FRESCO_BUCKET"
+                }
+              }
+            }
+          }
+          EOF
+
       - name: Build Scala application
         run: sbt clean assembly
         working-directory: backend
