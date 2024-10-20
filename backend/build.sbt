@@ -34,3 +34,10 @@ lazy val root = (project in file(".")).
 
 assembly / assemblyJarName := "backend-assembly.jar"
 assembly / mainClass := Some("com.fresco.app.FrescoApp")
+
+assemblyMergeStrategy in assembly := {
+  case PathList("module-info.class") => MergeStrategy.discard
+  case x =>
+    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    oldStrategy(x)
+}
