@@ -41,7 +41,7 @@ resource "aws_iam_user_policy" "crawler_user_policy" {
   })
 }
 
-# Create IAM User for backend
+# Create IAM User for DEV backend
 resource "aws_iam_user" "backend_user" {
   name = "backend_user"
 }
@@ -123,12 +123,54 @@ resource "aws_iam_role" "eb_instance_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "eb_instance_role_policy" {
+resource "aws_iam_role_policy_attachment" "eb_instance_role_s3_dynamodb_policy" {
+  policy_arn = aws_iam_policy.backend_access_policy.arn
+  role       = aws_iam_role.eb_instance_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eb_instance_role_web_tier_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
   role       = aws_iam_role.eb_instance_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "eb_instance_role_s3_dynamodb_policy" {
-  policy_arn = aws_iam_policy.backend_access_policy.arn
+resource "aws_iam_role_policy_attachment" "eb_instance_role_worker_tier_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier"
   role       = aws_iam_role.eb_instance_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eb_instance_role_multicontainer_docker_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
+  role       = aws_iam_role.eb_instance_role.name
+}
+
+resource "aws_iam_role" "eb_service_role" {
+  name = "fresco-backend-eb-service-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = ""
+        Effect = "Allow"
+        Principal = {
+          Service = "elasticbeanstalk.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          StringEquals = {
+            "sts:ExternalId" = "elasticbeanstalk"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eb_service_role_enhanced_health_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth"
+  role       = aws_iam_role.eb_service_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eb_service_role_managed_updates_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy"
+  role       = aws_iam_role.eb_service_role.name
 }

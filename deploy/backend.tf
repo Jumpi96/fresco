@@ -10,6 +10,12 @@ resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
 
   setting {
     namespace = "aws:elasticbeanstalk:environment"
+    name      = "ServiceRole"
+    value     = aws_iam_role.eb_service_role.name
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
     name      = "EnvironmentType"
     value     = "SingleInstance"
   }
@@ -19,6 +25,13 @@ resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
     name      = "FRESCO_ENV"
     value     = "prod"
   }
+
+  # On October 2024, AWS Elastic Beanstalk deprecated the ability to use launch templates.
+  # Because of this, this resource couldn't be created fully with Terraform.
+  # This lifecycle rule ignores all changes to this resource that was imported manually.
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_iam_instance_profile" "eb_instance_profile" {
@@ -27,5 +40,5 @@ resource "aws_iam_instance_profile" "eb_instance_profile" {
 }
 
 output "elastic_beanstalk_url" {
-  value = aws_elastic_beanstalk_environment.fresco_backend_env.endpoint_url
+  value = aws_elastic_beanstalk_environment.fresco_backend_env.cname
 }
