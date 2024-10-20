@@ -19,7 +19,7 @@ jobs:
       cloudfront_distribution_id: ${{ steps.terraform_outputs.outputs.cloudfront_distribution_id }}
       recipes_table_name: ${{ steps.terraform_outputs.outputs.recipes_table_name }}
       ingredients_table_name: ${{ steps.terraform_outputs.outputs.ingredients_table_name }}
-      recipe_bucket_name: ${{ steps.terraform_outputs.outputs.recipe_bucket_name }}
+      recipes_bucket_name: ${{ steps.terraform_outputs.outputs.recipes_bucket_name }}
       elastic_beanstalk_environment_name: ${{ steps.terraform_outputs.outputs.elastic_beanstalk_environment_name }}
 
     steps:
@@ -61,6 +61,7 @@ jobs:
           echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
           echo "recipes_table_name=$(terraform output -raw recipes_table_name)" >> $GITHUB_OUTPUT
           echo "ingredients_table_name=$(terraform output -raw ingredients_table_name)" >> $GITHUB_OUTPUT
+          echo "recipes_bucket_name=$(terraform output -raw recipes_bucket_name)" >> $GITHUB_OUTPUT
           echo "elastic_beanstalk_environment_name=$(terraform output -raw elastic_beanstalk_environment_name)" >> $GITHUB_OUTPUT
         working-directory: deploy
 
@@ -146,7 +147,7 @@ jobs:
                 storage {
                   recipesTableName = "${{ needs.infrastructure.outputs.recipes_table_name }}"
                   ingredientsTableName = "${{ needs.infrastructure.outputs.ingredients_table_name }}"
-                  bucketName = "${{ needs.infrastructure.outputs.recipe_bucket_name }}"
+                  bucketName = "${{ needs.infrastructure.outputs.recipes_bucket_name }}"
                 }
               }
             }
@@ -160,7 +161,7 @@ jobs:
 
       - name: Upload JAR to S3
         run: |
-          aws s3 cp target/scala-3.3.3/backend-assembly.jar s3://${{ needs.infrastructure.outputs.recipe_bucket_name }}/backend-assembly.jar
+          aws s3 cp target/scala-3.3.3/backend-assembly.jar s3://${{ needs.infrastructure.outputs.recipes_bucket_name }}/backend-assembly.jar
         working-directory: backend
 
       - name: Deploy to Elastic Beanstalk
@@ -168,7 +169,7 @@ jobs:
           aws elasticbeanstalk create-application-version \
             --application-name fresco-backend \
             --version-label ${{ github.sha }} \
-            --source-bundle S3Bucket=${{ needs.infrastructure.outputs.recipe_bucket_name }},S3Key=backend-assembly.jar
+            --source-bundle S3Bucket=${{ needs.infrastructure.outputs.recipes_bucket_name }},S3Key=backend-assembly.jar
 
           aws elasticbeanstalk update-environment \
             --environment-name ${{ needs.infrastructure.outputs.elastic_beanstalk_environment_name }} \

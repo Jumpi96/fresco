@@ -48,6 +48,6 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
-output "recipe_bucket_name" {
+output "recipes_bucket_name" {
   value = aws_s3_bucket.recipe_storage.id
 }
