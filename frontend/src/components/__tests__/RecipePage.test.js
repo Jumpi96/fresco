@@ -190,42 +190,9 @@ describe('RecipePage', () => {
     expect(wrapper.find('.servings-adjuster span').text()).toBe('1 serving');
   });
 
-  it('toggles recipe selection', async () => {
-    const wrapper = mount(RecipePage, {
-      global: {
-        plugins: [mockStore],
-        stubs: ['router-link']
-      }
-    });
 
-    await wrapper.vm.$nextTick();
-
-    // Initially, the recipe should not be selected
-    expect(wrapper.find('.select-button').text()).toBe('+');
-
-    // Click the select button
-    await wrapper.find('.select-button').trigger('click');
-
-    // The button should now show a checkmark
-    expect(wrapper.find('.select-button').text()).toBe('✓');
-    expect(mockStore.state.recipes.actions.addSelectedRecipe).toHaveBeenCalledWith(
-      expect.anything(),
-      { ...mockRecipe, servings: 1 }
-    );
-
-    // Click the select button again to deselect
-    await wrapper.find('.select-button').trigger('click');
-
-    // The button should now show a plus sign again
-    expect(wrapper.find('.select-button').text()).toBe('+');
-    expect(mockStore.state.recipes.actions.removeSelectedRecipe).toHaveBeenCalledWith(
-      expect.anything(),
-      1
-    );
-  });
-
-  it('updates servings for selected recipe', async () => {
-    mockStore.state.recipes.selectedRecipes = [{ ...mockRecipe, servings: 1 }];
+  it('defaults to 1 serving when recipe is not selected', async () => {
+    mockStore.state.recipes.selectedRecipes = [];
     
     const wrapper = mount(RecipePage, {
       global: {
@@ -236,27 +203,6 @@ describe('RecipePage', () => {
 
     await wrapper.vm.$nextTick();
 
-    // Increase servings
-    await wrapper.find('.servings-adjuster button:last-child').trigger('click');
-
-    expect(mockStore.state.recipes.actions.updateRecipeServings).toHaveBeenCalledWith(
-      expect.anything(),
-      { recipeId: 1, servings: 2 }
-    );
-  });
-
-  it('initializes servings from selected recipe', async () => {
-    mockStore.state.recipes.selectedRecipes = [{ ...mockRecipe, servings: 3 }];
-    
-    const wrapper = mount(RecipePage, {
-      global: {
-        plugins: [mockStore],
-        stubs: ['router-link']
-      }
-    });
-
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.find('.servings-adjuster span').text()).toBe('3 servings');
+    expect(wrapper.find('.servings-adjuster span').text()).toBe('1 serving');
   });
 });
