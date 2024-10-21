@@ -2,10 +2,14 @@
 import { useRoute } from 'vue-router';
 import { mapState, mapActions } from 'vuex';
 import { calculateKcal } from '@/utils/nutritionCalculations';
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
+import IngredientItem from '@/components/IngredientItem.vue';
 
 export default {
   name: 'RecipePage',
+  components: {
+    IngredientItem
+  },
   setup() {
     const route = useRoute();
     const recipeId = route.params.id;
@@ -13,13 +17,20 @@ export default {
     return { recipeId, servings };
   },
   computed: {
-    ...mapState('recipes', ['currentRecipe', 'ingredients']),
+    ...mapState('recipes', ['currentRecipe', 'ingredients', 'selectedRecipes']),
     recipe() {
       return this.currentRecipe;
+    },
+    isSelected() {
+      return this.selectedRecipes.some(r => r.id === this.recipe.id);
+    },
+    selectedRecipeServings() {
+      const selectedRecipe = this.selectedRecipes.find(r => r.id === this.recipe.id);
+      return selectedRecipe ? selectedRecipe.servings : 1;
     }
   },
   methods: {
-    ...mapActions('recipes', ['fetchRecipe', 'fetchIngredients']),
+    ...mapActions('recipes', ['fetchRecipe', 'fetchIngredients', 'addSelectedRecipe', 'removeSelectedRecipe', 'updateRecipeServings']),
     formatTime(time) {
       if (time === 'PT0S') {
         return '🤷‍♂️';
@@ -32,16 +43,34 @@ export default {
     },
     adjustServings(change) {
       this.servings = Math.max(1, this.servings + change);
+      if (this.isSelected) {
+        this.updateRecipeServings({ recipeId: this.recipe.id, servings: this.servings });
+      }
     },
     calculateAdjustedAmount(amount) {
       const adjusted = (amount * this.servings).toFixed(2);
       return parseFloat(adjusted).toString();
+    },
+    toggleSelectedRecipe() {
+      if (this.isSelected) {
+        this.removeSelectedRecipe(this.recipe.id);
+      } else {
+        this.addSelectedRecipe({ ...this.recipe, servings: this.servings });
+      }
+    }
+  },
+  watch: {
+    selectedRecipeServings(newServings) {
+      this.servings = newServings;
     }
   },
   created() {
     this.fetchRecipe(this.recipeId).then(() => {
       if (this.recipe) {
         this.fetchIngredients(this.recipe.ingredients.map(ing => ing.id));
+        if (this.isSelected) {
+          this.servings = this.selectedRecipeServings;
+        }
       }
     });
   }
@@ -65,28 +94,25 @@ export default {
       <div class="recipe-ingredients">
         <div class="ingredients-header">
           <h2>Ingredients</h2>
-          <div class="servings-adjuster">
-            <button @click="adjustServings(-1)" :disabled="servings <= 1">-</button>
-            <span>{{ servings }} {{ servings === 1 ? 'serving' : 'servings' }}</span>
-            <button @click="adjustServings(1)">+</button>
+          <div class="recipe-controls">
+            <div class="servings-adjuster">
+              <button @click="adjustServings(-1)" :disabled="servings <= 1">-</button>
+              <span>{{ servings }} {{ servings === 1 ? 'serving' : 'servings' }}</span>
+              <button @click="adjustServings(1)">+</button>
+            </div>
+            <button @click="toggleSelectedRecipe" class="select-button" :class="{ 'selected': isSelected }">
+              {{ isSelected ? '✓' : '+' }}
+            </button>
           </div>
         </div>
         <ul class="ingredients-grid">
-          <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="ingredient-item">
-            <img v-if="ingredients[ingredient.id] && ingredients[ingredient.id].imagePath" 
-                 :src="ingredients[ingredient.id].imagePath" 
-                 :alt="ingredients[ingredient.id].name" 
-                 class="ingredient-image">
-            <div class="ingredient-details">
-              <span class="ingredient-amount">
-                <template v-if="ingredient.amount !== 0">
-                  {{ calculateAdjustedAmount(ingredient.amount) }}
-                </template>
-                {{ ingredient.unit }}
-              </span>
-              <span class="ingredient-name">{{ ingredients[ingredient.id] ? ingredients[ingredient.id].name : 'Loading...' }}</span>
-            </div>
-          </li>
+          <IngredientItem
+            v-for="ingredient in recipe.ingredients"
+            :key="ingredient.id"
+            :ingredient="ingredient"
+            :ingredientDetails="ingredients[ingredient.id]"
+            :servings="servings"
+          />
         </ul>
       </div>
       <div class="recipe-instructions">
@@ -262,5 +288,34 @@ li {
 .servings-adjuster span {
   font-weight: bold;
   margin: 0 10px;
+}
+
+.recipe-controls {
+  display: flex;
+  align-items: center;
+}
+
+.select-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 10px;
+  cursor: pointer;
+  font-size: 1.2em;
+  border-radius: 4px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-button.selected {
+  background-color: #45a049;
+}
+
+.select-button:hover {
+  background-color: #45a049;
 }
 </style>

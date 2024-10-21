@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import RecipePage from '../RecipePage.vue';
 import { createStore } from 'vuex';
@@ -25,11 +25,15 @@ const mockStore = createStore({
       namespaced: true,
       state: {
         currentRecipe: null,
-        ingredients: {}
+        ingredients: {},
+        selectedRecipes: []
       },
       actions: {
         fetchRecipe: vi.fn(),
-        fetchIngredients: vi.fn()
+        fetchIngredients: vi.fn(),
+        addSelectedRecipe: vi.fn(),
+        removeSelectedRecipe: vi.fn(),
+        updateRecipeServings: vi.fn()
       }
     }
   }
@@ -63,6 +67,7 @@ describe('RecipePage', () => {
       1: { name: 'Ingredient 1', imagePath: 'ing1.jpg' },
       2: { name: 'Ingredient 2', imagePath: 'ing2.jpg' }
     };
+    mockStore.state.recipes.selectedRecipes = [];
   });
 
   it('renders recipe details correctly', async () => {
@@ -183,5 +188,75 @@ describe('RecipePage', () => {
 
     // Check that servings didn't go below 1
     expect(wrapper.find('.servings-adjuster span').text()).toBe('1 serving');
+  });
+
+  it('toggles recipe selection', async () => {
+    const wrapper = mount(RecipePage, {
+      global: {
+        plugins: [mockStore],
+        stubs: ['router-link']
+      }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    // Initially, the recipe should not be selected
+    expect(wrapper.find('.select-button').text()).toBe('+');
+
+    // Click the select button
+    await wrapper.find('.select-button').trigger('click');
+
+    // The button should now show a checkmark
+    expect(wrapper.find('.select-button').text()).toBe('✓');
+    expect(mockStore.state.recipes.actions.addSelectedRecipe).toHaveBeenCalledWith(
+      expect.anything(),
+      { ...mockRecipe, servings: 1 }
+    );
+
+    // Click the select button again to deselect
+    await wrapper.find('.select-button').trigger('click');
+
+    // The button should now show a plus sign again
+    expect(wrapper.find('.select-button').text()).toBe('+');
+    expect(mockStore.state.recipes.actions.removeSelectedRecipe).toHaveBeenCalledWith(
+      expect.anything(),
+      1
+    );
+  });
+
+  it('updates servings for selected recipe', async () => {
+    mockStore.state.recipes.selectedRecipes = [{ ...mockRecipe, servings: 1 }];
+    
+    const wrapper = mount(RecipePage, {
+      global: {
+        plugins: [mockStore],
+        stubs: ['router-link']
+      }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    // Increase servings
+    await wrapper.find('.servings-adjuster button:last-child').trigger('click');
+
+    expect(mockStore.state.recipes.actions.updateRecipeServings).toHaveBeenCalledWith(
+      expect.anything(),
+      { recipeId: 1, servings: 2 }
+    );
+  });
+
+  it('initializes servings from selected recipe', async () => {
+    mockStore.state.recipes.selectedRecipes = [{ ...mockRecipe, servings: 3 }];
+    
+    const wrapper = mount(RecipePage, {
+      global: {
+        plugins: [mockStore],
+        stubs: ['router-link']
+      }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.servings-adjuster span').text()).toBe('3 servings');
   });
 });

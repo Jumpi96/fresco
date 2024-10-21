@@ -7,6 +7,7 @@ const recipes = {
     currentRecipe: null,
     ingredients: {},
     lastEvaluatedId: null,
+    selectedRecipes: [],
   },
   mutations: {
     SET_RECIPES(state, recipes) {
@@ -20,6 +21,25 @@ const recipes = {
     },
     SET_LAST_EVALUATED_ID(state, id) {
       state.lastEvaluatedId = id;
+    },
+    ADD_SELECTED_RECIPE(state, recipe) {
+      const existingIndex = state.selectedRecipes.findIndex(r => r.id === recipe.id);
+      if (existingIndex !== -1) {
+        // If the recipe already exists, update its servings
+        state.selectedRecipes[existingIndex].servings = recipe.servings;
+      } else {
+        // If it's a new recipe, add it to the list
+        state.selectedRecipes.push({ ...recipe, servings: recipe.servings || 1 });
+      }
+    },
+    REMOVE_SELECTED_RECIPE(state, recipeId) {
+      state.selectedRecipes = state.selectedRecipes.filter(r => r.id !== recipeId);
+    },
+    UPDATE_RECIPE_SERVINGS(state, { recipeId, servings }) {
+      const recipe = state.selectedRecipes.find(r => r.id === recipeId);
+      if (recipe) {
+        recipe.servings = servings;
+      }
     },
   },
   actions: {
@@ -55,7 +75,37 @@ const recipes = {
         console.error('Error fetching ingredients:', error);
       }
     },
+    addSelectedRecipe({ commit }, recipe) {
+      commit('ADD_SELECTED_RECIPE', recipe);
+    },
+    removeSelectedRecipe({ commit }, recipeId) {
+      commit('REMOVE_SELECTED_RECIPE', recipeId);
+    },
+    updateRecipeServings({ commit }, { recipeId, servings }) {
+      commit('UPDATE_RECIPE_SERVINGS', { recipeId, servings });
+    },
   },
+  getters: {
+    combinedIngredients: (state) => {
+      const combined = {};
+      state.selectedRecipes.forEach(recipe => {
+        recipe.ingredients.forEach(ingredient => {
+          const key = `${ingredient.id}-${ingredient.unit}`;
+          if (combined[key]) {
+            combined[key].amount += ingredient.amount * recipe.servings;
+          } else {
+            combined[key] = {
+              id: ingredient.id,
+              amount: ingredient.amount * recipe.servings,
+              unit: ingredient.unit,
+              name: state.ingredients[ingredient.id]?.name || 'Unknown Ingredient'
+            };
+          }
+        });
+      });
+      return Object.values(combined);
+    }
+  }
 };
 
 export default recipes;

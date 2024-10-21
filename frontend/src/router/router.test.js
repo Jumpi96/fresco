@@ -9,7 +9,7 @@ describe('Router', () => {
       routes,
     });
 
-    expect(router.getRoutes()).toHaveLength(2);
+    expect(router.getRoutes()).toHaveLength(3);
 
     const homeRoute = router.getRoutes().find(route => route.path === '/');
     expect(homeRoute).toBeDefined();
@@ -18,6 +18,9 @@ describe('Router', () => {
     const recipeRoute = router.getRoutes().find(route => route.path === '/:id');
     expect(recipeRoute).toBeDefined();
     expect(recipeRoute.name).toBe('RecipePage');
+
+    const shoppingCartRoute = router.getRoutes().find(route => route.path === '/shopping-cart');
+    expect(shoppingCartRoute).toBeDefined();
+    expect(shoppingCartRoute.name).toBe('ShoppingCart');
   });
 });
-
