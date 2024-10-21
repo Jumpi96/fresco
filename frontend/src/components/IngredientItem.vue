@@ -1,5 +1,8 @@
 <template>
-  <li class="ingredient-item">
+  <li class="ingredient-item" :class="{ 'bought': isBought }">
+    <div class="checkbox-container">
+      <input type="checkbox" :checked="isBought" @change="toggleBought" />
+    </div>
     <img v-if="ingredientDetails && ingredientDetails.imagePath" 
          :src="ingredientDetails.imagePath" 
          :alt="ingredientDetails.name" 
@@ -17,6 +20,8 @@
 </template>
 
 <script>
+import { ref } from 'vue';
+
 export default {
   name: 'IngredientItem',
   props: {
@@ -32,6 +37,22 @@ export default {
       type: Number,
       required: true
     }
+  },
+  setup(props, { emit }) {
+    const isBought = ref(false);
+
+    const toggleBought = () => {
+      isBought.value = !isBought.value;
+      emit('ingredientBoughtToggle', {
+        id: props.ingredient.id,
+        isBought: isBought.value
+      });
+    };
+
+    return {
+      isBought,
+      toggleBought
+    };
   },
   computed: {
     amount() {
@@ -51,10 +72,14 @@ export default {
 <style scoped>
 .ingredient-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   background-color: #f8f8f8;
   padding: 10px;
   border-radius: 8px;
+}
+
+.checkbox-container {
+  margin-right: 10px;
 }
 
 .ingredient-image {
@@ -79,5 +104,10 @@ export default {
 .ingredient-name {
   font-weight: bold;
   margin-right: 10px;
+}
+
+.bought {
+  opacity: 0.5;
+  text-decoration: line-through;
 }
 </style>

@@ -14,7 +14,9 @@ export default {
     const route = useRoute();
     const recipeId = route.params.id;
     const servings = ref(1);
-    return { recipeId, servings };
+    const boughtIngredients = ref({});
+
+    return { recipeId, servings, boughtIngredients };
   },
   computed: {
     ...mapState('recipes', ['currentRecipe', 'ingredients', 'selectedRecipes']),
@@ -57,11 +59,23 @@ export default {
       } else {
         this.addSelectedRecipe({ ...this.recipe, servings: this.servings });
       }
+    },
+    handleIngredientBoughtToggle({ id, isBought }) {
+      this.boughtIngredients[id] = isBought;
+    },
+    resetBoughtIngredients() {
+      this.boughtIngredients = {};
     }
   },
   watch: {
     selectedRecipeServings(newServings) {
       this.servings = newServings;
+    },
+    servings() {
+      this.resetBoughtIngredients();
+    },
+    recipe() {
+      this.resetBoughtIngredients();
     }
   },
   created() {
@@ -112,6 +126,7 @@ export default {
             :ingredient="ingredient"
             :ingredientDetails="ingredients[ingredient.id]"
             :servings="servings"
+            @ingredientBoughtToggle="handleIngredientBoughtToggle"
           />
         </ul>
       </div>

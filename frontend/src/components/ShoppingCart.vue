@@ -1,6 +1,7 @@
 <script>
 import { mapState, mapActions, mapGetters } from 'vuex';
 import IngredientItem from '@/components/IngredientItem.vue';
+import { ref } from 'vue';
 
 export default {
   name: 'ShoppingCart',
@@ -24,6 +25,33 @@ export default {
       }
     },
   },
+  setup() {
+    const boughtIngredients = ref({});
+
+    return { boughtIngredients };
+  },
+  methods: {
+    handleIngredientBoughtToggle({ id, isBought }) {
+      this.boughtIngredients[id] = isBought;
+    },
+    resetBoughtIngredients() {
+      this.boughtIngredients = {};
+    }
+  },
+  watch: {
+    selectedRecipes: {
+      handler() {
+        this.resetBoughtIngredients();
+      },
+      deep: true
+    },
+    combinedIngredients: {
+      handler() {
+        this.resetBoughtIngredients();
+      },
+      deep: true
+    }
+  }
 }
 </script>
 
@@ -36,7 +64,11 @@ export default {
         <div v-for="recipe in selectedRecipes" :key="recipe.id" class="recipe-item">
           <img :src="recipe.imagePath" :alt="recipe.name" class="recipe-image">
           <div class="recipe-details">
-            <h3>{{ recipe.name }}</h3>
+            <h3>
+              <router-link :to="{ name: 'RecipePage', params: { id: recipe.id } }" class="recipe-link">
+                {{ recipe.name }}
+              </router-link>
+            </h3>
             <div class="servings-control">
               <button @click="updateServings(recipe.id, -1)" :disabled="recipe.servings <= 1">-</button>
               <span>{{ recipe.servings }} {{ recipe.servings === 1 ? 'serving' : 'servings' }}</span>
@@ -55,6 +87,7 @@ export default {
             :ingredient="{ id: ingredient.id, amount: ingredient.amount, unit: ingredient.unit }"
             :ingredientDetails="{ name: ingredient.name, imagePath: ingredients[ingredient.id]?.imagePath }"
             :servings="1"
+            @ingredientBoughtToggle="handleIngredientBoughtToggle"
           />
         </ul>
       </div>
@@ -169,5 +202,15 @@ h2 {
   gap: 20px;
   padding: 0;
   list-style-type: none;
+}
+
+.recipe-link {
+  color: #4caf50;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.recipe-link:hover {
+  text-decoration: underline;
 }
 </style>
