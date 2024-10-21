@@ -26,6 +26,24 @@ resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
     value     = "prod"
   }
 
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "LoadBalancerType"
+    value     = "application"
+  }
+
+  setting {
+    namespace = "aws:elbv2:listener:443"
+    name      = "Protocol"
+    value     = "HTTPS"
+  }
+
+  setting {
+    namespace = "aws:elbv2:listener:443"
+    name      = "SSLCertificateArns"
+    value     = aws_acm_certificate.jplorenzo_cert.arn
+  }
+
   # On October 2024, AWS Elastic Beanstalk deprecated the ability to use launch templates.
   # Because of this, this resource couldn't be created fully with Terraform.
   # This lifecycle rule ignores all changes to this resource that was imported manually.
@@ -38,6 +56,9 @@ resource "aws_iam_instance_profile" "eb_instance_profile" {
   name = "fresco-backend-eb-instance-profile"
   role = aws_iam_role.eb_instance_role.name
 }
+
+# Data source to get the Elastic Beanstalk hosted zone ID
+data "aws_elastic_beanstalk_hosted_zone" "current" {}
 
 output "elastic_beanstalk_url" {
   value = aws_elastic_beanstalk_environment.fresco_backend_env.cname
