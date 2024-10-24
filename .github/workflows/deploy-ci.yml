@@ -14,7 +14,7 @@ jobs:
   infrastructure:
     runs-on: ubuntu-latest
     outputs:
-      elastic_beanstalk_url: ${{ steps.terraform_outputs.outputs.elastic_beanstalk_url }}
+      backend_url: ${{ steps.terraform_outputs.outputs.backend_url }}
       frontend_bucket_name: ${{ steps.terraform_outputs.outputs.frontend_bucket_name }}
       cloudfront_distribution_id: ${{ steps.terraform_outputs.outputs.cloudfront_distribution_id }}
       recipes_table_name: ${{ steps.terraform_outputs.outputs.recipes_table_name }}
@@ -56,7 +56,7 @@ jobs:
       - name: Get Terraform Outputs
         id: terraform_outputs
         run: |
-          echo "elastic_beanstalk_url=$(terraform output -raw elastic_beanstalk_url)" >> $GITHUB_OUTPUT
+          echo "backend_url=$(terraform output -raw backend_url)" >> $GITHUB_OUTPUT
           echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_OUTPUT
           echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
           echo "recipes_table_name=$(terraform output -raw recipes_table_name)" >> $GITHUB_OUTPUT
@@ -91,8 +91,8 @@ jobs:
 
       - name: Build frontend
         run: |
-          echo "VITE_FRESCO_API_BASE_URL=http://${{ needs.infrastructure.outputs.elastic_beanstalk_url }}" > .env
-          echo "Extracted Elastic Beanstalk URL: ${{ needs.infrastructure.outputs.elastic_beanstalk_url }}"
+          echo "VITE_FRESCO_API_BASE_URL=https://${{ needs.infrastructure.outputs.backend_url }}" > .env
+          echo "Extracted Backend URL: ${{ needs.infrastructure.outputs.backend_url }}"
           npm run build
         working-directory: frontend
 
