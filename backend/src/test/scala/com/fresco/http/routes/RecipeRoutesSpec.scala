@@ -69,7 +69,7 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       )
       val getRecipesResponse = GetRecipesResponse(recipes, None)
 
-      val test = Get("/recipes?pageSize=2") ~> Route.seal(recipeRoutes.recipeRoutes)
+      val test = Get("/api/recipes?pageSize=2") ~> Route.seal(recipeRoutes.recipeRoutes)
       // In the actual actor, we send a GetRecipes message to the probe and expect it to return a response
       val message = recipeRegistryProbe.expectMessageType[GetRecipes]
       // Capture the `replyTo` ActorRef and send it the mocked response
@@ -85,7 +85,7 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       val getRecipeResponse = GetRecipeResponse(Some(recipe))
 
       // Test the route
-      val test = Get("/recipes/1") ~> Route.seal(recipeRoutes.recipeRoutes)
+      val test = Get("/api/recipes/1") ~> Route.seal(recipeRoutes.recipeRoutes)
       // Send a GetRecipe message and expect a response from the probe
       val message = recipeRegistryProbe.expectMessageType[GetRecipe]
       message.replyTo ! getRecipeResponse
@@ -100,7 +100,7 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       val getRecipeResponse = GetRecipeResponse(None)
 
       // Test the route
-      val test = Get("/recipes/999") ~> Route.seal(recipeRoutes.recipeRoutes)
+      val test = Get("/api/recipes/999") ~> Route.seal(recipeRoutes.recipeRoutes)
       // Send a GetRecipe message and expect a response from the probe
       val message = recipeRegistryProbe.expectMessageType[GetRecipe]
       message.replyTo ! getRecipeResponse

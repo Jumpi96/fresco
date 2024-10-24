@@ -1,5 +1,10 @@
 provider "aws" {
-  region = "eu-central-1"  # Adjust to your desired AWS region
+  region = "eu-central-1"
+}
+
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
 }
 
 terraform {
