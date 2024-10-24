@@ -31,10 +31,8 @@ class IngredientRoutes(ingredientRegistry: ActorRef[IngredientRegistry.Command])
     ingredientRegistry.ask(GetIngredient(id, _))
 
   //#all-routes
-  //#ingredients-get
-  //#ingredients-get
   val ingredientRoutes: Route =
-    pathPrefix("ingredients") {
+    pathPrefix("api" / "ingredients") {
       concat(
         pathEnd {
           parameters("pageSize".as[Int].optional, "lastEvaluatedId".optional) { (pageSize, lastEvaluatedId) =>
@@ -50,8 +48,6 @@ class IngredientRoutes(ingredientRegistry: ActorRef[IngredientRegistry.Command])
             }
           }
         },
-        //#ingredients-get
-        //#ingredients-get
         path(Segment) { id =>
           get {
             onComplete(ingredientRegistry.ask(replyTo => GetIngredient(id, replyTo))) {
@@ -64,7 +60,6 @@ class IngredientRoutes(ingredientRegistry: ActorRef[IngredientRegistry.Command])
             }
           }
         })
-      //#ingredients-get-delete
+      }
     }
   //#all-routes
-}

@@ -34,7 +34,7 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
   //#recipes-get
   //#recipes-get
   val recipeRoutes: Route =
-    pathPrefix("recipes") {
+    pathPrefix("api" / "recipes") {
       concat(
         pathEnd {
           parameters("pageSize".as[Int].optional, "lastEvaluatedId".optional) { (pageSize, lastEvaluatedId) =>

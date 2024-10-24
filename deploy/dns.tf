@@ -1,60 +1,17 @@
-
 # ACM Certificate
-resource "aws_acm_certificate" "jplorenzo_cert" {
-  domain_name       = "*.jplorenzo.com"
-  validation_method = "DNS"
+data "aws_acm_certificate" "jplorenzo_cert" {
+  provider = aws.us_east_1
 
-  lifecycle {
-    create_before_destroy = true
-  }
+  domain      = "*.jplorenzo.com"
 }
 
-# Find a certificate issued by (not imported into) ACM
-data "aws_acm_certificate" "amazon_issued" {
-  domain      = "tf.example.com"
-  types       = ["AMAZON_ISSUED"]
-  most_recent = true
-}
-
-# Route 53 record for ACM validation
-resource "aws_route53_record" "cert_validation" {
-  for_each = {
-    for dvo in aws_acm_certificate.jplorenzo_cert.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  }
-
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = aws_route53_zone.main.zone_id
-}
-
-# Route 53 Hosted Zone
-resource "aws_route53_zone" "main" {
-  name = "jplorenzo.com"
-}
-
-# Route 53 record for API
-resource "aws_route53_record" "api" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "fresco.jplorenzo.com"
-  type    = "A"
-
-  alias {
-    name                   = aws_elastic_beanstalk_environment.fresco_backend_env.cname
-    zone_id                = data.aws_elastic_beanstalk_hosted_zone.current.id
-    evaluate_target_health = true
-  }
+data "aws_route53_zone" "main" {
+  name         = "jplorenzo.com."
 }
 
 # Route 53 record for frontend
 resource "aws_route53_record" "frontend" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "fresco.jplorenzo.com"
   type    = "A"
 
@@ -85,8 +42,8 @@ resource "aws_cloudfront_distribution" "frontend" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]  // This can be ignored for HTTP-only
     }
   }
 
@@ -142,7 +99,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate.jplorenzo_cert.arn
+    acm_certificate_arn = data.aws_acm_certificate.jplorenzo_cert.arn
     ssl_support_method  = "sni-only"
   }
 }

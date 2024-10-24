@@ -41,7 +41,7 @@ resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
   setting {
     namespace = "aws:elbv2:listener:443"
     name      = "SSLCertificateArns"
-    value     = aws_acm_certificate.jplorenzo_cert.arn
+    value     = data.aws_acm_certificate.jplorenzo_cert.arn
   }
 
   # On October 2024, AWS Elastic Beanstalk deprecated the ability to use launch templates.
