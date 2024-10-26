@@ -1,11 +1,11 @@
 // Remove Vue import as it's not needed in Vue 3
-import Vuex from 'vuex';
+import { createStore } from 'vuex';
 import recipes from './modules/recipes';
+import auth from './modules/auth';
 
-//Vue.use(Vuex);
-
-export default new Vuex.Store({
+export default createStore({
   modules: {
     recipes,
+    auth,
   },
 });

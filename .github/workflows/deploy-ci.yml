@@ -16,6 +16,8 @@ jobs:
       ingredients_table_name: ${{ steps.terraform_outputs.outputs.ingredients_table_name }}
       recipes_bucket_name: ${{ steps.terraform_outputs.outputs.recipes_bucket_name }}
       elastic_beanstalk_environment_name: ${{ steps.terraform_outputs.outputs.elastic_beanstalk_environment_name }}
+      cognito_user_pool_id: ${{ steps.terraform_outputs.outputs.cognito_user_pool_id }}
+      cognito_client_id: ${{ steps.terraform_outputs.outputs.cognito_client_id }}
 
     steps:
       - name: Checkout code
@@ -58,6 +60,8 @@ jobs:
           echo "ingredients_table_name=$(terraform output -raw ingredients_table_name)" >> $GITHUB_OUTPUT
           echo "recipes_bucket_name=$(terraform output -raw recipes_bucket_name)" >> $GITHUB_OUTPUT
           echo "elastic_beanstalk_environment_name=$(terraform output -raw elastic_beanstalk_environment_name)" >> $GITHUB_OUTPUT
+          echo "cognito_user_pool_id=$(terraform output -raw cognito_user_pool_id)" >> $GITHUB_OUTPUT
+          echo "cognito_client_id=$(terraform output -raw cognito_client_id)" >> $GITHUB_OUTPUT
         working-directory: deploy
 
   frontend:
@@ -88,6 +92,8 @@ jobs:
         run: |
           echo "VITE_FRESCO_API_BASE_URL=https://${{ needs.infrastructure.outputs.backend_url }}" > .env
           echo "Extracted Backend URL: ${{ needs.infrastructure.outputs.backend_url }}"
+          echo "VITE_COGNITO_USER_POOL_ID=${{ needs.infrastructure.outputs.cognito_user_pool_id }}" >> .env
+          echo "VITE_COGNITO_CLIENT_ID=${{ needs.infrastructure.outputs.cognito_client_id }}" >> .env
           npm run build
         working-directory: frontend
 
