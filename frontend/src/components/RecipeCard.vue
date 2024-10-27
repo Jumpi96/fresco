@@ -26,7 +26,7 @@
       </div>
 
       <!-- Recipe Link (Button) -->
-      <router-link :to="`/${recipe.id}`" class="cook-button">Cook this recipe!</router-link>
+      <router-link :to="`/recipes/${recipe.id}`" class="cook-button">Cook this recipe!</router-link>
     </div>
   </div>
 </template>

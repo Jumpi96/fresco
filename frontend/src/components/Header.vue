@@ -18,27 +18,41 @@
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
       </button>
+      <button @click="logout" class="icon-button" aria-label="Logout">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
     </div>
   </header>
 </template>
 
 <script>
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 
 export default {
   name: 'AppHeader',
   setup() {
     const router = useRouter();
+    const store = useStore();
 
     const goHome = () => {
-      router.push('/');
+      router.push('/recipes');
     };
 
     const goToShoppingCart = () => {
       router.push('/shopping-cart');
     };
 
-    return { goHome, goToShoppingCart };
+    const logout = async () => {
+      await store.dispatch('auth/signOut');
+      router.push('/');
+    };
+
+    return { goHome, goToShoppingCart, logout };
   }
 }
 </script>

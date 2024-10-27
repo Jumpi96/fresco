@@ -14,7 +14,7 @@ export const auth = {
         if (err) {
           reject(err);
         } else {
-          resolve(result.user);
+          resolve({ user: result.user, userConfirmed: result.userConfirmed });
         }
       });
     });
@@ -34,7 +34,12 @@ export const auth = {
 
       cognitoUser.authenticateUser(authenticationDetails, {
         onSuccess: (result) => {
-          resolve(result);
+          const userAttributes = result.getIdToken().payload;
+          resolve({
+            username: userAttributes['cognito:username'],
+            email: userAttributes.email,
+            // Add any other attributes you want to include
+          });
         },
         onFailure: (err) => {
           reject(err);
@@ -69,12 +74,32 @@ export const auth = {
                 acc[attribute.Name] = attribute.Value;
                 return acc;
               }, {});
-              resolve(userData);
+              resolve({
+                username: userData['cognito:username'] || userData.sub,
+                email: userData.email,
+                // Add any other attributes you want to include
+              });
             }
           });
         }
       });
     });
   },
-};
 
+  confirmSignUp: (username, code) => {
+    return new Promise((resolve, reject) => {
+      const cognitoUser = new CognitoUser({
+        Username: username,
+        Pool: userPool
+      });
+
+      cognitoUser.confirmRegistration(code, true, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  },
+};

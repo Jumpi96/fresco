@@ -15,10 +15,14 @@ const authModule = {
   actions: {
     async signUp({ commit }, { username, email, password }) {
       try {
-        await auth.signUp(username, email, password);
-        // After sign up, the user still needs to sign in
+        const result = await auth.signUp(username, email, password);
+        if (!result.userConfirmed) {
+          return { userConfirmed: false, username };
+        }
+        // If user is automatically confirmed, sign them in
         const user = await auth.signIn(username, password);
         commit('SET_USER', user);
+        return { userConfirmed: true, user };
       } catch (error) {
         console.error('Sign up error:', error);
         throw error;
@@ -46,8 +50,16 @@ const authModule = {
         commit('SET_USER', null);
       }
     },
+    async confirmSignUp({ commit }, { username, code }) {
+      try {
+        await auth.confirmSignUp(username, code);
+        return true;
+      } catch (error) {
+        console.error('Confirm sign up error:', error);
+        throw error;
+      }
+    },
   },
 };
 
 export default authModule;
-

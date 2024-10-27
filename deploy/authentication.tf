@@ -19,7 +19,7 @@ resource "aws_cognito_user_pool_client" "fresco_client" {
   user_pool_id = aws_cognito_user_pool.fresco_pool.id
 
   generate_secret     = false
-  explicit_auth_flows = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  explicit_auth_flows = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_SRP_AUTH"]
 }
 
 # Output the User Pool ID and Client ID

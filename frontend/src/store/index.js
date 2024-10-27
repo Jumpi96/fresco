@@ -3,9 +3,11 @@ import { createStore } from 'vuex';
 import recipes from './modules/recipes';
 import auth from './modules/auth';
 
-export default createStore({
+export const store = createStore({
   modules: {
     recipes,
     auth,
   },
 });
+
+export default store;
