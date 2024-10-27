@@ -138,6 +138,7 @@ jobs:
 
           fresco {
             env = "prod"
+            port = 5000
 
             routes {
               ask-timeout = 10s

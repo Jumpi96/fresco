@@ -102,4 +102,17 @@ export const auth = {
       });
     });
   },
+
+  setSession: (session) => {
+    localStorage.setItem('userSession', JSON.stringify(session));
+  },
+
+  getSession: () => {
+    const session = localStorage.getItem('userSession');
+    return session ? JSON.parse(session) : null;
+  },
+
+  clearSession: () => {
+    localStorage.removeItem('userSession');
+  },
 };

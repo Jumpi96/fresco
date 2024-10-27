@@ -21,11 +21,11 @@ import scala.util.{Failure, Success}
 //#main-class
 object FrescoApp {
   //#start-http-server
-  private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
+  private def startHttpServer(port: Int, routes: Route)(implicit system: ActorSystem[_]): Unit = {
     // Akka HTTP still needs a classic ActorSystem to start
     import system.executionContext
 
-    val futureBinding = Http().newServerAt("localhost", 5000).bind(routes)
+    val futureBinding = Http().newServerAt("localhost", port).bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
         val address = binding.localAddress
@@ -64,6 +64,7 @@ object FrescoApp {
       val recipeRegistryActor = context.spawn(RecipeRegistry(recipeRepository), "RecipeRegistryActor")
       context.watch(recipeRegistryActor)
 
+      val port = config.getInt("fresco.port")
       val routes: Route = cors() {
         concat(
           new UserRoutes(userRegistryActor)(context.system).userRoutes,
@@ -71,7 +72,7 @@ object FrescoApp {
           new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes,
         )
       }
-      startHttpServer(routes)(context.system)
+      startHttpServer(port, routes)(context.system)
 
       Behaviors.empty
     }

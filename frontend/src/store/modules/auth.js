@@ -13,16 +13,14 @@ const authModule = {
     },
   },
   actions: {
-    async signUp({ commit }, { username, email, password }) {
+    async signUp({ commit, dispatch }, { username, email, password }) {
       try {
         const result = await auth.signUp(username, email, password);
         if (!result.userConfirmed) {
           return { userConfirmed: false, username };
         }
         // If user is automatically confirmed, sign them in
-        const user = await auth.signIn(username, password);
-        commit('SET_USER', user);
-        return { userConfirmed: true, user };
+        return dispatch('signIn', { username, password });
       } catch (error) {
         console.error('Sign up error:', error);
         throw error;
@@ -32,6 +30,8 @@ const authModule = {
       try {
         const user = await auth.signIn(username, password);
         commit('SET_USER', user);
+        auth.setSession(user);
+        return user;
       } catch (error) {
         console.error('Sign in error:', error);
         throw error;
@@ -39,15 +39,26 @@ const authModule = {
     },
     async signOut({ commit }) {
       auth.signOut();
+      auth.clearSession();
       commit('SET_USER', null);
     },
     async getCurrentUser({ commit }) {
       try {
+        const session = auth.getSession();
+        if (session) {
+          commit('SET_USER', session);
+          return session;
+        }
         const user = await auth.getCurrentUser();
-        commit('SET_USER', user);
+        if (user) {
+          commit('SET_USER', user);
+          auth.setSession(user);
+        }
+        return user;
       } catch (error) {
         console.error('Get current user error:', error);
         commit('SET_USER', null);
+        return null;
       }
     },
     async confirmSignUp({ commit }, { username, code }) {

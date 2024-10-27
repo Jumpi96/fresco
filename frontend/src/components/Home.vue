@@ -1,48 +1,52 @@
 <template>
   <div class="home">
-    <h1>Welcome to Fresco</h1>
-    <div v-if="!isAuthenticated">
-      <div class="auth-forms">
-        <div class="login-form">
+    <AppHeader :isAuthenticated="isAuthenticated" />
+    <div class="home-content">
+      <div v-if="!isAuthenticated" class="auth-container">
+        <div class="auth-form">
           <h2>Login</h2>
           <form @submit.prevent="login">
             <input v-model="loginForm.username" type="text" placeholder="Username" required>
             <input v-model="loginForm.password" type="password" placeholder="Password" required>
-            <button type="submit">Login</button>
+            <button type="submit" class="submit-button">Login</button>
             <p v-if="loginError" class="error-message">{{ loginError }}</p>
           </form>
         </div>
-        <div class="signup-form">
+        <div class="auth-form">
           <h2>Sign Up</h2>
           <form @submit.prevent="signup" v-if="!showConfirmation">
             <input v-model="signupForm.username" type="text" placeholder="Username" required>
             <input v-model="signupForm.email" type="email" placeholder="Email" required>
             <input v-model="signupForm.password" type="password" placeholder="Password" required>
-            <button type="submit">Sign Up</button>
+            <button type="submit" class="submit-button">Sign Up</button>
             <p v-if="signupError" class="error-message">{{ signupError }}</p>
           </form>
           <form @submit.prevent="confirmSignUp" v-else>
             <input v-model="confirmationCode" type="text" placeholder="Confirmation Code" required>
-            <button type="submit">Confirm</button>
+            <button type="submit" class="submit-button">Confirm</button>
             <p v-if="confirmationError" class="error-message">{{ confirmationError }}</p>
           </form>
         </div>
       </div>
-    </div>
-    <div v-else>
-      <p>Welcome back, {{ user.username }}!</p>
-      <button @click="goToRecipes">View Recipes</button>
+      <div v-else class="welcome-container">
+        <p class="welcome-message">Welcome back, <span class="username">{{ user.email }}</span>!</p>
+        <button @click="goToRecipes" class="view-recipes-button">View Recipes</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import AppHeader from '@/components/Header.vue';
 
 export default {
   name: 'Home',
+  components: {
+    AppHeader
+  },
   setup() {
     const store = useStore();
     const router = useRouter();
@@ -119,45 +123,59 @@ export default {
       }
     };
 
-    const goToRecipes = () => {
-      router.push('/recipes');
-    };
-
-    return {
-      loginForm,
-      signupForm,
-      isAuthenticated,
-      user,
-      login,
-      signup,
-      goToRecipes,
-      loginError,
-      signupError,
-      showConfirmation,
-      confirmationCode,
-      confirmationError,
-      pendingUsername,
-      confirmSignUp
-    };
+    onMounted(async () => {
+      if (!isAuthenticated.value) {
+        await store.dispatch('auth/getCurrentUser');
+      }
+    });
   }
 };
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
 .home {
+  font-family: 'Poppins', Arial, sans-serif;
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.auth-forms {
+.home-content {
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-title {
+  font-size: 2.5em;
+  color: #333;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.auth-container {
   display: flex;
   justify-content: space-between;
   margin-top: 20px;
 }
 
-.login-form, .signup-form {
+.auth-form {
   width: 45%;
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  font-size: 1.8em;
+  color: #444;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 5px;
 }
 
 form {
@@ -166,19 +184,26 @@ form {
 }
 
 input {
-  margin-bottom: 10px;
-  padding: 8px;
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
 }
 
-button {
-  padding: 10px;
+.submit-button {
+  padding: 12px;
   background-color: #4caf50;
   color: white;
   border: none;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.3s;
 }
 
-button:hover {
+.submit-button:hover {
   background-color: #45a049;
 }
 
@@ -187,4 +212,37 @@ button:hover {
   margin-top: 10px;
   font-size: 0.9em;
 }
+
+.welcome-container {
+  text-align: center;
+}
+
+.welcome-message {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+}
+
+.username {
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.view-recipes-button {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #4caf50;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 600;
+  font-size: 1em;
+  transition: background-color 0.3s;
+  border: none;
+  cursor: pointer;
+}
+
+.view-recipes-button:hover {
+  background-color: #45a049;
+}
 </style>
+

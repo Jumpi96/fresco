@@ -32,10 +32,17 @@
 <script>
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import { computed } from 'vue';
 
 export default {
   name: 'AppHeader',
-  setup() {
+  props: {
+    isAuthenticated: {
+      type: Boolean,
+      default: false
+    }
+  },
+  setup(props) {
     const router = useRouter();
     const store = useStore();
 
