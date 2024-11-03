@@ -9,13 +9,18 @@ describe('Router', () => {
       routes,
     });
 
-    expect(router.getRoutes()).toHaveLength(3);
+    expect(router.getRoutes()).toHaveLength(4);
+
 
     const homeRoute = router.getRoutes().find(route => route.path === '/');
     expect(homeRoute).toBeDefined();
-    expect(homeRoute.name).toBe('RecipeList');
+    expect(homeRoute.name).toBe('Home');
 
-    const recipeRoute = router.getRoutes().find(route => route.path === '/:id');
+    const recipesRoute = router.getRoutes().find(route => route.path === '/recipes');
+    expect(recipesRoute).toBeDefined();
+    expect(recipesRoute.name).toBe('RecipeList');
+
+    const recipeRoute = router.getRoutes().find(route => route.path === '/recipes/:id');
     expect(recipeRoute).toBeDefined();
     expect(recipeRoute.name).toBe('RecipePage');
 
