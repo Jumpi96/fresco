@@ -5,7 +5,7 @@
       <div v-if="!isAuthenticated" class="auth-container">
         <div class="auth-form">
           <h2>Login</h2>
-          <form @submit.prevent="login">
+          <form @submit.prevent="login" v-if="loginForm">
             <input v-model="loginForm.username" type="text" placeholder="Username" required>
             <input v-model="loginForm.password" type="password" placeholder="Password" required>
             <button type="submit" class="submit-button">Login</button>
@@ -14,7 +14,7 @@
         </div>
         <div class="auth-form">
           <h2>Sign Up</h2>
-          <form @submit.prevent="signup" v-if="!showConfirmation">
+          <form @submit.prevent="signup" v-if="!showConfirmation && signupForm">
             <input v-model="signupForm.username" type="text" placeholder="Username" required>
             <input v-model="signupForm.email" type="email" placeholder="Email" required>
             <input v-model="signupForm.password" type="password" placeholder="Password" required>
@@ -28,16 +28,12 @@
           </form>
         </div>
       </div>
-      <div v-else class="welcome-container">
-        <p class="welcome-message">Welcome back, <span class="username">{{ user.email }}</span>!</p>
-        <button @click="goToRecipes" class="view-recipes-button">View Recipes</button>
-      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import AppHeader from '@/components/Header.vue';
@@ -61,7 +57,6 @@ export default {
     const pendingUsername = ref('');
 
     const isAuthenticated = computed(() => store.state.auth.isAuthenticated);
-    const user = computed(() => store.state.auth.user);
 
     const login = async () => {
       try {
@@ -126,8 +121,25 @@ export default {
     onMounted(async () => {
       if (!isAuthenticated.value) {
         await store.dispatch('auth/getCurrentUser');
+      } else {
+        router.push('/recipes'); // Redirect if already authenticated
       }
     });
+
+    return {
+      loginForm,
+      signupForm,
+      loginError,
+      signupError,
+      showConfirmation,
+      confirmationCode,
+      confirmationError,
+      pendingUsername,
+      isAuthenticated,
+      login,
+      signup,
+      confirmSignUp
+    };
   }
 };
 </script>

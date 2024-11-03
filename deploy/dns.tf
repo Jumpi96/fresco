@@ -108,3 +108,7 @@ resource "aws_cloudfront_distribution" "frontend" {
 output "backend_url" {
   value = "${aws_route53_record.frontend.name}/api"
 }
+
+output "frontend_url" {
+  value = aws_route53_record.frontend.name
+}

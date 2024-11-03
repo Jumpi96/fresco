@@ -3,14 +3,12 @@ package com.fresco.app
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpMethods.{DELETE, GET, OPTIONS, POST, PUT}
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
-import akka.http.scaladsl.model.headers.{HttpOriginRange, `Access-Control-Allow-Credentials`, `Access-Control-Allow-Headers`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`}
 import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.server.{Directive0, Route}
+import akka.http.scaladsl.server.Route
 import com.fresco.config.AWSClientsProvider
 import com.fresco.domain.repositories.{IngredientRepository, RecipeRepository}
 import com.fresco.domain.services.{DynamoDBService, S3Service}
+import com.fresco.http.CORSHandler
 import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes, UserRoutes}
 import com.fresco.registries.{IngredientRegistry, RecipeRegistry, UserRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -25,7 +23,8 @@ object FrescoApp {
     // Akka HTTP still needs a classic ActorSystem to start
     import system.executionContext
 
-    val futureBinding = Http().newServerAt("localhost", port).bind(routes)
+    val cors = new CORSHandler {}
+    val futureBinding = Http().newServerAt("localhost", port).bind(cors.corsHandler(routes))
     futureBinding.onComplete {
       case Success(binding) =>
         val address = binding.localAddress
@@ -64,8 +63,9 @@ object FrescoApp {
       val recipeRegistryActor = context.spawn(RecipeRegistry(recipeRepository), "RecipeRegistryActor")
       context.watch(recipeRegistryActor)
 
+      val allowedOrigin = config.getString("fresco.allowedOrigin")
       val port = config.getInt("fresco.port")
-      val routes: Route = cors() {
+      val routes: Route = {
         concat(
           new UserRoutes(userRegistryActor)(context.system).userRoutes,
           new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
