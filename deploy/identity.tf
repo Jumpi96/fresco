@@ -72,7 +72,18 @@ resource "aws_iam_policy" "backend_access_policy" {
         Effect   = "Allow",
         Resource = [
           "${aws_dynamodb_table.recipes.arn}",
-          "${aws_dynamodb_table.ingredients.arn}"
+          "${aws_dynamodb_table.ingredients.arn}",
+          "${aws_dynamodb_table.favourites.arn}",
+        ]
+      },
+      {
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ],
+        Effect   = "Allow",
+        Resource = [
+          "${aws_dynamodb_table.favourites.arn}",
         ]
       }
     ]
