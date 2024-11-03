@@ -2,8 +2,8 @@ name: fresco-deploy
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - v*
 
 jobs:
   infrastructure:
