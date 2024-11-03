@@ -24,19 +24,17 @@ export default {
         this.updateRecipeServings({ recipeId, servings: newServings });
       }
     },
-  },
-  setup() {
-    const boughtIngredients = ref({});
-
-    return { boughtIngredients };
-  },
-  methods: {
     handleIngredientBoughtToggle({ id, isBought }) {
       this.boughtIngredients[id] = isBought;
     },
     resetBoughtIngredients() {
       this.boughtIngredients = {};
     }
+  },
+  setup() {
+    const boughtIngredients = ref({});
+
+    return { boughtIngredients };
   },
   watch: {
     selectedRecipes: {
