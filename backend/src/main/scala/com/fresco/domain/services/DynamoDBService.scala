@@ -1,13 +1,13 @@
 package com.fresco.domain.services
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
-import com.amazonaws.services.dynamodbv2.model.{AttributeValue, GetItemRequest, ScanRequest, ScanResult}
+import com.amazonaws.services.dynamodbv2.model.{AttributeValue, DeleteItemRequest, GetItemRequest, PutItemRequest, ScanRequest, ScanResult}
 import com.fresco.domain.models.{Ingredient, IngredientPerPerson, Macros, Recipe, Step}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
 
-class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, recipesTable: String)
+class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, recipesTable: String, favouriteRecipesTable: String)
                      (implicit ec: ExecutionContext) {
 
   def getIngredients(lastEvaluatedId: Option[String] = None, limit: Int = 50): Future[(Seq[Ingredient], Option[String])] = {
@@ -134,6 +134,35 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
     }
   }
 
+  def getFavouriteRecipes(userId: String, lastEvaluatedId: Option[String] = None, limit: Int = 50): Future[(Seq[Recipe], Option[String])] = {
+    val scanRequest = new ScanRequest()
+      .withTableName(favouriteRecipesTable)
+      .withLimit(limit)
+      .withFilterExpression("userId = :userId")
+      .withExpressionAttributeValues(Map(":userId" -> new AttributeValue().withS(userId)).asJava)
+
+    // Add pagination support with lastEvaluatedId
+    lastEvaluatedId.foreach { id =>
+      scanRequest.withExclusiveStartKey(Map("id" -> new AttributeValue().withS(id)).asJava)
+    }
+
+    val result: ScanResult = dynamoDBClient.scan(scanRequest)
+    val recipeIds = result.getItems.asScala.map { item =>
+      item.get("recipeId").getS
+    }
+
+    Future.sequence(recipeIds.map(getRecipe)).map { recipes =>
+      val filteredRecipes = recipes.flatten.toSeq
+      val lastEvaluatedKey = Option(result.getLastEvaluatedKey).flatMap { keyMap =>
+        Option(keyMap.get("id")).map(_.getS)
+      }
+      (filteredRecipes, lastEvaluatedKey)
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error fetching recipes: ${ex.getMessage}")
+    }
+  }
+
   def getRecipe(id: String): Future[Option[Recipe]] = {
     Future {
       val getItemRequest = new GetItemRequest()
@@ -187,6 +216,63 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
     }.recover {
       case ex: Exception =>
         throw new RuntimeException(s"Error fetching recipe $id: ${ex.getMessage}")
+    }
+  }
+
+  def addFavouriteRecipe(userId: String, recipeId: String): Future[Boolean] = {
+    val item = Map(
+      "userId" -> new AttributeValue().withS(userId),
+      "recipeId" -> new AttributeValue().withS(recipeId)
+    ).asJava
+
+    val putItemRequest = new PutItemRequest()
+      .withTableName(favouriteRecipesTable)
+      .withItem(item)
+
+    Future {
+      dynamoDBClient.putItem(putItemRequest)
+      true // Return true if the operation is successful
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error adding favourite recipe: ${ex.getMessage}")
+    }
+  }
+
+  def removeFavouriteRecipe(userId: String, recipeId: String): Future[Boolean] = {
+    val key = Map(
+      "userId" -> new AttributeValue().withS(userId),
+      "recipeId" -> new AttributeValue().withS(recipeId)
+    ).asJava
+
+    val deleteItemRequest = new DeleteItemRequest()
+      .withTableName(favouriteRecipesTable)
+      .withKey(key)
+
+    Future {
+      dynamoDBClient.deleteItem(deleteItemRequest)
+      true // Return true if the operation is successful
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error deleting favourite recipe: ${ex.getMessage}")
+    }
+  }
+
+  def isFavouriteRecipe(userId: String, recipeId: String): Future[Boolean] = {
+    val key = Map(
+      "userId" -> new AttributeValue().withS(userId),
+      "recipeId" -> new AttributeValue().withS(recipeId)
+    ).asJava
+
+    val getItemRequest = new GetItemRequest()
+      .withTableName(favouriteRecipesTable)
+      .withKey(key)
+
+    Future {
+      val result = dynamoDBClient.getItem(getItemRequest)
+      result.getItem != null
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error checking favourite recipe: ${ex.getMessage}")
     }
   }
 }

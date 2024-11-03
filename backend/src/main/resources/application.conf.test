@@ -19,6 +19,7 @@ fresco {
       storage {
         recipesTableName = "recipes"
         ingredientsTableName = "ingredients"
+        favouriteRecipesTableName = "favourites"
         bucketName = "frescoBucket"
       }
     }

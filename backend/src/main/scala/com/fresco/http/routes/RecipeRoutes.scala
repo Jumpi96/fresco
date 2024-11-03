@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import com.fresco.http.formats.JsonFormats
 import com.fresco.registries.RecipeRegistry
-import com.fresco.registries.RecipeRegistry.{GetRecipe, GetRecipeResponse, GetRecipesResponse}
+import com.fresco.registries.RecipeRegistry.{AddFavouriteRequest, AddFavouriteResponse, GetRecipe, GetRecipeResponse, GetRecipesResponse, RemoveFavouriteResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -27,13 +27,10 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
   // If ask takes more time than this to complete the request is failed
   private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration("fresco.routes.ask-timeout"))
 
-  def getRecipe(id: String): Future[GetRecipeResponse] =
-    recipeRegistry.ask(GetRecipe(id, _))
-
   //#all-routes
   //#recipes-get
   //#recipes-get
-  val recipeRoutes: Route =
+  val allRecipeRoutes: Route =
     pathPrefix("api" / "recipes") {
       concat(
         pathEnd {
@@ -50,21 +47,72 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
             }
           }
         },
-        //#recipes-get
-        //#recipes-get
         path(Segment) { id =>
           get {
-            onComplete(recipeRegistry.ask(replyTo => GetRecipe(id, replyTo))) {
-              case Success(GetRecipeResponse(Some(recipe))) =>
-                complete(recipe)
-              case Success(_) =>
-                complete(StatusCodes.NotFound -> s"Recipe with ID $id not found")
-              case Failure(exception) =>
-                complete(StatusCodes.InternalServerError -> s"Failed to fetch recipe: ${exception.getMessage}")
+            parameters("userId".as[String]) { (userId) =>
+              onComplete(recipeRegistry.ask(replyTo => GetRecipe(id, userId, replyTo))) {
+                case Success(GetRecipeResponse(recipe, isFavourite)) =>
+                  complete(GetRecipeResponse(recipe, isFavourite))
+                case Success(_) =>
+                  complete(StatusCodes.NotFound -> s"Recipe with ID $id not found")
+                case Failure(exception) =>
+                  complete(StatusCodes.InternalServerError -> s"Failed to fetch recipe: ${exception.getMessage}")
+              }
             }
           }
         })
       //#recipes-get-delete
     }
+
+  val favouriteRoutes: Route =
+    pathPrefix("api" / "favourites") {
+      concat(
+        // GET method for fetching favourite recipes
+        get {
+          parameters("userId".as[String], "pageSize".as[Int].optional, "lastEvaluatedId".optional) { (userId, pageSize, lastEvaluatedId) =>
+            val size = pageSize.getOrElse(50)
+            val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+              recipeRegistry.ask(replyTo => RecipeRegistry.GetFavouriteRecipes(userId, size, lastEvaluatedId, replyTo))
+
+            onComplete(futureRecipes) {
+              case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                complete(GetRecipesResponse(recipes, lastEvaluatedId))
+              case Failure(ex) =>
+                complete(StatusCodes.InternalServerError -> s"Failed to fetch favourite recipes: ${ex.getMessage}")
+            }
+          }
+        },
+        post {
+          entity(as[AddFavouriteRequest]) { request =>
+            val futureResponse: Future[RecipeRegistry.AddFavouriteResponse] =
+              recipeRegistry.ask(replyTo => RecipeRegistry.AddFavouriteRecipe(request.userId, request.recipeId, replyTo))
+
+            onComplete(futureResponse) {
+              case Success(AddFavouriteResponse(true)) =>
+                complete(StatusCodes.OK -> "Recipe added to favourites.")
+              case Success(AddFavouriteResponse(false)) =>
+                complete(StatusCodes.BadRequest -> "Failed to add recipe to favourites.")
+              case Failure(ex) =>
+                complete(StatusCodes.InternalServerError -> s"Failed to add favourite recipe: ${ex.getMessage}")
+            }
+          }
+        },
+        delete {
+          parameters("userId".as[String], "recipeId".as[String]) { (userId, recipeId) =>
+            val futureResponse: Future[RecipeRegistry.RemoveFavouriteResponse] =
+              recipeRegistry.ask(replyTo => RecipeRegistry.RemoveFavouriteRecipe(userId, recipeId, replyTo))
+
+            onComplete(futureResponse) {
+              case Success(RemoveFavouriteResponse(success)) =>
+                complete(StatusCodes.OK -> "Recipe removed from favourites.")
+              case Failure(ex) =>
+                complete(StatusCodes.InternalServerError -> s"Failed to remove favourite recipe: ${ex.getMessage}")
+            }
+          }
+        }
+      )
+    }
+
+  val recipeRoutes = concat(allRecipeRoutes, favouriteRoutes)
   //#all-routes
 }

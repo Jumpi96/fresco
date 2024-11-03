@@ -9,8 +9,8 @@ import com.fresco.config.AWSClientsProvider
 import com.fresco.domain.repositories.{IngredientRepository, RecipeRepository}
 import com.fresco.domain.services.{DynamoDBService, S3Service}
 import com.fresco.http.CORSHandler
-import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes, UserRoutes}
-import com.fresco.registries.{IngredientRegistry, RecipeRegistry, UserRegistry}
+import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes}
+import com.fresco.registries.{IngredientRegistry, RecipeRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.util.{Failure, Success}
@@ -42,17 +42,15 @@ object FrescoApp {
       val config: Config = ConfigFactory.load()
       val environment: String = config.getString("fresco.env")
 
-      val userRegistryActor = context.spawn(UserRegistry(), "UserRegistryActor")
-      context.watch(userRegistryActor)
-
       val awsConfig = config.getConfig(s"fresco.$environment.aws")
       val ingredientsTable = awsConfig.getConfig("storage").getString("ingredientsTableName")
       val recipesTable = awsConfig.getConfig("storage").getString("recipesTableName")
+      val favouritesTable = awsConfig.getConfig("storage").getString("favouriteRecipesTableName")
       val bucketName = awsConfig.getConfig("storage").getString("bucketName")
       val s3Client = AWSClientsProvider.createS3PresignedUrlClient(awsConfig)
       val dynamoDBClient = AWSClientsProvider.createDynamoDBClient(awsConfig)
 
-      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable, recipesTable)(context.executionContext)
+      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable, recipesTable, favouritesTable)(context.executionContext)
       val s3Service = S3Service(s3Client, bucketName)(context.executionContext)
 
       val ingredientRepository = IngredientRepository(dynamoDBService, s3Service)(context.executionContext)
@@ -67,9 +65,8 @@ object FrescoApp {
       val port = config.getInt("fresco.port")
       val routes: Route = {
         concat(
-          new UserRoutes(userRegistryActor)(context.system).userRoutes,
           new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
-          new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes,
+          new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes
         )
       }
       startHttpServer(port, routes)(context.system)

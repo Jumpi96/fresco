@@ -9,15 +9,21 @@ import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
-
+import scala.concurrent.Future
 
 object RecipeRegistry {
   // actor protocol
   sealed trait Command
   final case class GetRecipes(pageSize: Int, lastEvaluatedId: Option[String], replyTo: ActorRef[GetRecipesResponse]) extends Command
+  final case class GetFavouriteRecipes(userId: String, pageSize: Int, lastEvaluatedId: Option[String], replyTo: ActorRef[GetRecipesResponse]) extends Command
+  final case class AddFavouriteRecipe(userId: String, recipeId: String, replyTo: ActorRef[AddFavouriteResponse]) extends Command
   final case class GetRecipesResponse(recipes: Seq[Recipe], lastEvaluatedId: Option[String])
-  final case class GetRecipe(id: String, replyTo: ActorRef[GetRecipeResponse]) extends Command
-  final case class GetRecipeResponse(maybeRecipe: Option[Recipe])
+  final case class GetRecipe(id: String, userId: String, replyTo: ActorRef[GetRecipeResponse]) extends Command
+  final case class GetRecipeResponse(recipe: Option[Recipe], isFavourite: Option[Boolean])
+  final case class AddFavouriteResponse(success: Boolean)
+  final case class AddFavouriteRequest(userId: String, recipeId: String)
+  final case class RemoveFavouriteResponse(success: Boolean)
+  final case class RemoveFavouriteRecipe(userId: String, recipeId: String, replyTo: ActorRef[RemoveFavouriteResponse]) extends Command
 
   def apply(repository: RecipeRepository): Behavior[Command] = {
     Behaviors.setup { context =>
@@ -44,18 +50,60 @@ object RecipeRegistry {
               replyTo ! GetRecipesResponse(Seq.empty, None)
           }
           Behaviors.same
-        case GetRecipe(id, replyTo) =>
+        case GetRecipe(id, userId,  replyTo) =>
           log.info(s"Fetching recipe with ID: $id")
-          repository.getRecipe(id).onComplete {
-            case Success(Some(recipe)) =>
-              log.info(s"Fetched recipe: $id")
-              replyTo ! GetRecipeResponse(Some(recipe))
-            case Success(_) =>
-              log.warn(s"Recipe with ID: $id not found")
-              replyTo ! GetRecipeResponse(None)
+          
+          // Check if the recipe is a favourite asynchronously
+          val isFavouriteFuture: Future[Boolean] = repository.isFavouriteRecipe(userId, id)
+
+          // Fetch the recipe and handle both futures
+          for {
+            isFavourite <- isFavouriteFuture
+            recipeOpt <- repository.getRecipe(id)
+          } yield {
+            recipeOpt match {
+              case Some(recipe) =>
+                log.info(s"Fetched recipe: $id")
+                replyTo ! GetRecipeResponse(Some(recipe), Some(isFavourite))
+              case None =>
+                log.warn(s"Recipe with ID: $id not found")
+                replyTo ! GetRecipeResponse(None, None)
+            }
+          }
+
+          Behaviors.same // Ensure the behavior remains the same
+        case GetFavouriteRecipes(userId, pageSize, lastEvaluatedId, replyTo) =>
+          // Fetch recipes with pagination
+          repository.getFavouriteRecipes(userId, lastEvaluatedId, pageSize).onComplete {
+            case Success((recipes, newLastEvaluatedId)) =>
+              log.info(s"Fetched ${recipes.size} favourite recipes from DynamoDB")
+              replyTo ! GetRecipesResponse(recipes, newLastEvaluatedId)
             case Failure(ex) =>
-              log.error(s"Failed to fetch recipe: ${ex.getMessage}")
-              replyTo ! GetRecipeResponse(None)
+              // Handle failure case here, e.g. by sending an empty list
+              log.error(s"Failed to fetch favourite recipes: ${ex.getMessage}")
+              replyTo ! GetRecipesResponse(Seq.empty, None)
+          }
+          Behaviors.same
+        case AddFavouriteRecipe(userId, recipeId, replyTo) =>
+          // Logic to add a favourite recipe
+          repository.addFavouriteRecipe(userId, recipeId).onComplete {
+            case Success(success) =>
+                log.info(s"Successfully added recipe $recipeId to user $userId's favourites")
+                replyTo ! AddFavouriteResponse(success = true)
+            case Failure(ex) =>
+              log.error(s"Failed to add favourite recipe: ${ex.getMessage}")
+              replyTo ! AddFavouriteResponse(success = false)
+          }
+          Behaviors.same
+        case RemoveFavouriteRecipe(userId, recipeId, replyTo) =>
+          // Logic to add a favourite recipe
+          repository.removeFavouriteRecipe(userId, recipeId).onComplete {
+            case Success(success) =>
+              log.info(s"Successfully removed recipe $recipeId from user $userId's favourites")
+              replyTo ! RemoveFavouriteResponse(success = true)
+            case Failure(ex) =>
+              log.error(s"Failed to remove favourite recipe: ${ex.getMessage}")
+              replyTo ! RemoveFavouriteResponse(success = false)
           }
           Behaviors.same
       }
