@@ -37,6 +37,14 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Build .env
+        working-directory: frontend
+        run: |
+          echo "VITE_FRESCO_API_BASE_URL=http://localhost:8080/api" > .env
+          echo "Using fake values for testing..."
+          echo "VITE_COGNITO_USER_POOL_ID=VITE_COGNITO_CLIENT_ID=1234567890abcdef1234567890abcdef" >> .env
+          echo "VITE_COGNITO_CLIENT_ID=us-west-2_aBcDeFgHi" >> .env
+
       # Run linter
       - name: Run linter
         if: false
