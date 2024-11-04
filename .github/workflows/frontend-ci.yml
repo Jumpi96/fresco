@@ -42,7 +42,7 @@ jobs:
         run: |
           echo "VITE_FRESCO_API_BASE_URL=http://localhost:8080/api" > .env
           echo "Using fake values for testing..."
-          echo "VITE_COGNITO_USER_POOL_ID=VITE_COGNITO_CLIENT_ID=1234567890abcdef1234567890abcdef" >> .env
+          echo "VITE_COGNITO_USER_POOL_ID=1234567890abcdef1234567890abcdef" >> .env
           echo "VITE_COGNITO_CLIENT_ID=us-west-2_aBcDeFgHi" >> .env
 
       # Run linter
