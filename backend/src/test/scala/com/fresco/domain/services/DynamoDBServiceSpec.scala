@@ -19,7 +19,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
     "getIngredient" should {
       "return an ingredient when it exists" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "123"
         val name = "Salt"
@@ -45,7 +45,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "return None when the ingredient doesn't exist" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "456"
 
@@ -62,7 +62,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "handle missing imagePath" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "789"
         val name = "Pepper"
@@ -86,7 +86,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "throw RuntimeException when DynamoDB client throws an exception" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "999"
 
@@ -103,7 +103,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
     "getRecipes" should {
       "return recipes and lastEvaluatedId when successful" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val scanResult = new ScanResult()
           .withItems(
@@ -157,7 +157,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "handle pagination with lastEvaluatedId" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val scanResult = new ScanResult().withItems(Seq.empty[java.util.Map[String, AttributeValue]].asJava)
 
@@ -173,7 +173,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "throw RuntimeException when DynamoDB client throws an exception" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         when(mockDynamoDBClient.scan(any[ScanRequest])).thenThrow(new RuntimeException("DynamoDB error"))
 
@@ -189,7 +189,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
     "getRecipe" should {
       "return a recipe when it exists" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "123"
         val item = Map(
@@ -244,7 +244,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "return None when the recipe doesn't exist" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "456"
 
@@ -261,7 +261,7 @@ class DynamoDBServiceSpec extends AnyWordSpec with Matchers with ScalaFutures wi
 
       "throw RuntimeException when DynamoDB client throws an exception" in {
         val mockDynamoDBClient = mock[AmazonDynamoDB]
-        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes")
+        val service = new DynamoDBService(mockDynamoDBClient, "ingredients", "recipes", "favourites")
 
         val id = "789"
 

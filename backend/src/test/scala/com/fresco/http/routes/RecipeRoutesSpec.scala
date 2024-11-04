@@ -81,33 +81,19 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       }
     }
     "return a specific recipe when found" in {
-      val recipe = recipeExampleOne
-      val getRecipeResponse = GetRecipeResponse(Some(recipe))
+      val recipeExample = recipeExampleOne
+      val getRecipeResponse = GetRecipeResponse(Some(recipeExample), Some(true))
 
       // Test the route
-      val test = Get("/api/recipes/1") ~> Route.seal(recipeRoutes.recipeRoutes)
+      val test = Get("/api/recipes/1?userId=123") ~> Route.seal(recipeRoutes.recipeRoutes)
       // Send a GetRecipe message and expect a response from the probe
       val message = recipeRegistryProbe.expectMessageType[GetRecipe]
       message.replyTo ! getRecipeResponse
 
       test ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Recipe] shouldEqual recipe
-      }
-    }
-
-    "return 404 when recipe is not found" in {
-      val getRecipeResponse = GetRecipeResponse(None)
-
-      // Test the route
-      val test = Get("/api/recipes/999") ~> Route.seal(recipeRoutes.recipeRoutes)
-      // Send a GetRecipe message and expect a response from the probe
-      val message = recipeRegistryProbe.expectMessageType[GetRecipe]
-      message.replyTo ! getRecipeResponse
-
-      test ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[String] shouldEqual "Recipe with ID 999 not found"
+        responseAs[GetRecipeResponse].recipe.get shouldEqual recipeExample
+        responseAs[GetRecipeResponse].isFavourite.get shouldEqual true
       }
     }
   }

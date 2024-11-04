@@ -9,7 +9,7 @@ describe('Router', () => {
       routes,
     });
 
-    expect(router.getRoutes()).toHaveLength(4);
+    expect(router.getRoutes()).toHaveLength(5);
 
 
     const homeRoute = router.getRoutes().find(route => route.path === '/');
@@ -19,6 +19,10 @@ describe('Router', () => {
     const recipesRoute = router.getRoutes().find(route => route.path === '/recipes');
     expect(recipesRoute).toBeDefined();
     expect(recipesRoute.name).toBe('RecipeList');
+
+    const favouritesRoute = router.getRoutes().find(route => route.path === '/favourites');
+    expect(favouritesRoute).toBeDefined();
+    expect(favouritesRoute.name).toBe('Favourites');
 
     const recipeRoute = router.getRoutes().find(route => route.path === '/recipes/:id');
     expect(recipeRoute).toBeDefined();
