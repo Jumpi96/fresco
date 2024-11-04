@@ -1,4 +1,5 @@
 import { api } from '@/services/api';
+import { auth } from '@/services/auth';
 
 const recipes = {
   namespaced: true,
@@ -8,13 +9,16 @@ const recipes = {
     ingredients: {},
     lastEvaluatedId: null,
     selectedRecipes: [],
+    favouriteRecipes: [],
+    isCurrentRecipeFavourite: null,
   },
   mutations: {
     SET_RECIPES(state, recipes) {
       state.recipes = [...state.recipes, ...recipes];
     },
-    SET_CURRENT_RECIPE(state, recipe) {
-      state.currentRecipe = recipe;
+    SET_CURRENT_RECIPE(state, data) {
+      state.currentRecipe = data.recipe;
+      state.isCurrentRecipeFavourite = data.isFavourite;
     },
     SET_INGREDIENTS(state, ingredients) {
       state.ingredients = { ...state.ingredients, ...ingredients };
@@ -25,10 +29,8 @@ const recipes = {
     ADD_SELECTED_RECIPE(state, recipe) {
       const existingIndex = state.selectedRecipes.findIndex(r => r.id === recipe.id);
       if (existingIndex !== -1) {
-        // If the recipe already exists, update its servings
         state.selectedRecipes[existingIndex].servings = recipe.servings;
       } else {
-        // If it's a new recipe, add it to the list
         state.selectedRecipes.push({ ...recipe, servings: recipe.servings || 1 });
       }
     },
@@ -41,6 +43,12 @@ const recipes = {
         recipe.servings = servings;
       }
     },
+    TOGGLE_FAVOURITE(state, added) {
+      state.isCurrentRecipeFavourite = added;
+    },
+    SET_FAVOURITE_RECIPES(state, favourites) {
+      state.favouriteRecipes = favourites;
+    },
   },
   actions: {
     async fetchRecipes({ commit }, lastEvaluatedId = null) {
@@ -52,10 +60,26 @@ const recipes = {
         console.error('Failed to fetch recipes:', error);
       }
     },
+    async fetchFavourites({ commit }) {
+      try {
+        const user = await auth.getCurrentUser();
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+        const data = await api.getFavourites(user.username);
+        commit('SET_FAVOURITE_RECIPES', data.recipes);
+      } catch (error) {
+        console.error('Failed to fetch favourites:', error);
+      }
+    },
     async fetchRecipe({ commit }, recipeId) {
       try {
-        const recipe = await api.getRecipe(recipeId);
-        commit('SET_CURRENT_RECIPE', recipe);
+        const user = await auth.getCurrentUser();
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+        const data = await api.getRecipe(recipeId, user.username);
+        commit('SET_CURRENT_RECIPE', data);
       } catch (error) {
         console.error(`Error fetching recipe ${recipeId}:`, error);
       }
@@ -83,6 +107,35 @@ const recipes = {
     },
     updateRecipeServings({ commit }, { recipeId, servings }) {
       commit('UPDATE_RECIPE_SERVINGS', { recipeId, servings });
+    },
+    async addFavourite({ commit }, recipe) {
+      try {
+        const user = await auth.getCurrentUser(); // Get the current user
+        if (!user) {
+          throw new Error('User not authenticated'); // Handle unauthenticated user
+        }
+        const response = await api.addFavourite(recipe.id, user.username);
+        if (response.success) {
+          commit('TOGGLE_FAVOURITE', true);
+        }
+      } catch (error) {
+        console.error('Error toggling favourite:', error);
+      }
+    },
+
+    async removeFavourite({ commit }, recipe) {
+      try {
+        const user = await auth.getCurrentUser(); // Get the current user
+        if (!user) {
+          throw new Error('User not authenticated'); // Handle unauthenticated user
+        }
+        const response = await api.removeFavourite(recipe.id, user.username);
+        if (response.success) {
+          commit('TOGGLE_FAVOURITE', false);
+        }
+      } catch (error) {
+        console.error('Error toggling favourite:', error);
+      }
     },
   },
   getters: {

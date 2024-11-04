@@ -4,6 +4,7 @@ import RecipeList from '../components/RecipeList.vue';
 import RecipePage from '../components/RecipePage.vue';
 import ShoppingCart from '../components/ShoppingCart.vue';
 import { store } from '../store';
+import FavouriteList from '@/components/FavouriteList.vue';
 
 export const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -23,6 +24,12 @@ export const routes = [
     path: '/shopping-cart', 
     name: 'ShoppingCart', 
     component: ShoppingCart,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/favourites', 
+    name: 'Favourites', 
+    component: FavouriteList,
     meta: { requiresAuth: true }
   },
 ];

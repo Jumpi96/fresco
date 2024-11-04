@@ -19,12 +19,15 @@ export default {
     return { recipeId, servings, boughtIngredients };
   },
   computed: {
-    ...mapState('recipes', ['currentRecipe', 'ingredients', 'selectedRecipes']),
+    ...mapState('recipes', ['currentRecipe', 'ingredients', 'selectedRecipes', 'isCurrentRecipeFavourite']),
     recipe() {
       return this.currentRecipe;
     },
     isSelected() {
       return this.selectedRecipes.some(r => r.id === this.recipe.id);
+    },
+    isFavourite() {
+      return this.isCurrentRecipeFavourite;
     },
     selectedRecipeServings() {
       const selectedRecipe = this.selectedRecipes.find(r => r.id === this.recipe.id);
@@ -32,7 +35,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions('recipes', ['fetchRecipe', 'fetchIngredients', 'addSelectedRecipe', 'removeSelectedRecipe', 'updateRecipeServings']),
+    ...mapActions('recipes', ['fetchRecipe', 'fetchIngredients', 'addSelectedRecipe', 'removeSelectedRecipe', 'updateRecipeServings', 'addFavourite', 'removeFavourite']),
     formatTime(time) {
       if (time === 'PT0S') {
         return '🤷‍♂️';
@@ -58,6 +61,13 @@ export default {
         this.removeSelectedRecipe(this.recipe.id);
       } else {
         this.addSelectedRecipe({ ...this.recipe, servings: this.servings });
+      }
+    },
+    toggleFavourite() {
+      if (this.isFavourite) {
+        this.removeFavourite(this.recipe);
+      } else {
+        this.addFavourite(this.recipe);
       }
     },
     handleIngredientBoughtToggle({ id, isBought }) {
@@ -105,6 +115,9 @@ export default {
           <span><strong class="recipe-details-label">Calories:</strong> <span class="recipe-details-amount">{{ calculateCalories(recipe) }} kcal</span></span>
         </div>
       </div>
+      <div class="recipe-controls">
+        
+      </div>
       <div class="recipe-ingredients">
         <div class="ingredients-header">
           <h2>Ingredients</h2>
@@ -116,6 +129,10 @@ export default {
             </div>
             <button @click="toggleSelectedRecipe" class="select-button" :class="{ 'selected': isSelected }">
               {{ isSelected ? '✓' : '+' }}
+            </button>
+            <button @click="toggleFavourite" class="select-button" :class="{ 'favourited': isFavourite }">
+              <span v-if="isFavourite">❤️</span>
+              <span v-else>🤍</span>
             </button>
           </div>
         </div>
@@ -331,6 +348,30 @@ li {
 }
 
 .select-button:hover {
+  background-color: #45a049;
+}
+
+.favourite-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 10px;
+  cursor: pointer;
+  font-size: 1.2em;
+  border-radius: 4px;
+  width: 100px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favourite-button.favourited {
+  background-color: #45a049;
+}
+
+.favourite-button:hover {
   background-color: #45a049;
 }
 </style>
