@@ -1,6 +1,14 @@
 import axios from 'axios';
+import { getSession } from './auth'; // Import the getSession function
 
 const API_BASE_URL = import.meta.env.VITE_FRESCO_API_BASE_URL;
+
+const getAuthHeaders = () => {
+  const session = getSession();
+  return {
+    Authorization: session ? `Bearer ${session.idToken}` : '',
+  };
+};
 
 export const api = {
   async getIngredients(pageSize = 12, lastEvaluatedId = null) {
@@ -9,9 +17,9 @@ export const api = {
     if (lastEvaluatedId) {
       params.append('lastEvaluatedId', lastEvaluatedId);
     }
-    params.append('pageSize', pageSize); // Assuming a default page size
+    params.append('pageSize', pageSize);
     url += `?${params.toString()}`;
-    const response = await axios.get(url);
+    const response = await axios.get(url, { headers: getAuthHeaders() });
     return response.data;
   },
 
@@ -23,12 +31,12 @@ export const api = {
     }
     params.append('pageSize', pageSize);
     url += `?${params.toString()}`;
-    const response = await axios.get(url);
+    const response = await axios.get(url, { headers: getAuthHeaders() });
     return response.data;
   },
 
   async getRecipe(recipeId, userId) {
-    const response = await axios.get(`${API_BASE_URL}/recipes/${recipeId}?userId=${userId}`);
+    const response = await axios.get(`${API_BASE_URL}/recipes/${recipeId}?userId=${userId}`, { headers: getAuthHeaders() });
     return response.data;
   },
 
@@ -39,7 +47,7 @@ export const api = {
 
   async addFavourite(recipeId, userId) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/favourites`, { recipeId, userId });
+      const response = await axios.post(`${API_BASE_URL}/favourites`, { recipeId, userId }, { headers: getAuthHeaders() });
       return { success: true, message: 'Favourite added successfully' };
     } catch (error) {
       console.error('Error adding favourite:', error);
@@ -49,7 +57,7 @@ export const api = {
 
   async removeFavourite(recipeId, userId) {
     try {
-      await axios.delete(`${API_BASE_URL}/favourites?recipeId=${recipeId}&userId=${userId}`);
+      await axios.delete(`${API_BASE_URL}/favourites?recipeId=${recipeId}&userId=${userId}`, { headers: getAuthHeaders() });
       return { success: true, message: 'Favourite removed successfully' };
     } catch (error) {
       console.error('Error removing favourite:', error);
@@ -66,7 +74,7 @@ export const api = {
     params.append('pageSize', pageSize);
     params.append('userId', userId);
     url += `?${params.toString()}`;
-    const response = await axios.get(url);
+    const response = await axios.get(url, { headers: getAuthHeaders() });
     return response.data;
   },
 };

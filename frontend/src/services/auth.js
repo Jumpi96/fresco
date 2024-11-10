@@ -35,10 +35,12 @@ export const auth = {
       cognitoUser.authenticateUser(authenticationDetails, {
         onSuccess: (result) => {
           const userAttributes = result.getIdToken().payload;
+          const token = result.getIdToken().getJwtToken();
+          setSession({ idToken: token });
           resolve({
             username: userAttributes['cognito:username'],
             email: userAttributes.email,
-            // Add any other attributes you want to include
+            token,
           });
         },
         onFailure: (err) => {
