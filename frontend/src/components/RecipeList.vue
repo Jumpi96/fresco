@@ -27,7 +27,7 @@ export default {
   methods: {
     ...mapActions('recipes', ['fetchRecipes']),
     loadMore() {
-      this.fetchRecipes(this.lastEvaluatedId);
+      this.fetchRecipes();
     }
   },
   created() {
