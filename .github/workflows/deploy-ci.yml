@@ -1,10 +1,5 @@
 name: fresco-deploy
 
-on:
-  push:
-    tags:
-      - v*
-
 jobs:
   infrastructure:
     runs-on: ubuntu-latest
