@@ -85,6 +85,22 @@ resource "aws_iam_policy" "backend_access_policy" {
         Resource = [
           "${aws_dynamodb_table.favourites.arn}",
         ]
+      },
+      {
+        Action = [
+          "dynamodb:DescribeTable"
+        ],
+        Effect   = "Allow",
+        Resource = [
+          "${aws_dynamodb_table.recipes.arn}"
+        ]
+      },
+      {
+        Action = [
+          "dynamodb:Query"  # Add permission for querying the GSI
+        ],
+        Effect   = "Allow",
+        Resource = "${aws_dynamodb_table.recipes.arn}/index/IndexNumberIndex"  # Specify the GSI ARN
       }
     ]
   })

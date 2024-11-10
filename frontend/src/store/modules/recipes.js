@@ -51,11 +51,10 @@ const recipes = {
     },
   },
   actions: {
-    async fetchRecipes({ commit }, lastEvaluatedId = null) {
+    async fetchRecipes({ commit }) {
       try {
-        const data = await api.getRecipes(lastEvaluatedId);
+        const data = await api.getRecipes();
         commit('SET_RECIPES', data.recipes);
-        commit('SET_LAST_EVALUATED_ID', data.lastEvaluatedId);
       } catch (error) {
         console.error('Failed to fetch recipes:', error);
       }

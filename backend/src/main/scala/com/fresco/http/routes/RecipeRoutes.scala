@@ -34,10 +34,10 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
     pathPrefix("api" / "recipes") {
       concat(
         pathEnd {
-          parameters("pageSize".as[Int].optional, "lastEvaluatedId".optional) { (pageSize, lastEvaluatedId) =>
+          parameters("pageSize".as[Int].optional) { (pageSize) =>
             val size = pageSize.getOrElse(50)
             val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
-              recipeRegistry.ask(replyTo => RecipeRegistry.GetRecipes(size, lastEvaluatedId, replyTo))
+              recipeRegistry.ask(replyTo => RecipeRegistry.GetRecipes(size, replyTo))
 
             onComplete(futureRecipes) {
               case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>

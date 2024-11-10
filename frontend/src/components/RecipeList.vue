@@ -7,7 +7,7 @@
         :recipe="recipe" />
     </div>
     <div class="recipe-grid-footer">
-      <button @click="loadMore" v-if="lastEvaluatedId" class="load-more-button">Load more...</button>
+      <button @click="loadMore" class="load-more-button">Load more...</button>
     </div>
   </div>
 </template>
@@ -22,7 +22,7 @@ export default {
     RecipeCard
   },
   computed: {
-    ...mapState('recipes', ['recipes', 'lastEvaluatedId']),
+    ...mapState('recipes', ['recipes']),
   },
   methods: {
     ...mapActions('recipes', ['fetchRecipes']),
