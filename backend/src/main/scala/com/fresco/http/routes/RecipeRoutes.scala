@@ -29,21 +29,49 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
 
   //#all-routes
   //#recipes-get
-  //#recipes-get
   val allRecipeRoutes: Route =
     pathPrefix("api" / "recipes") {
       concat(
         pathEnd {
-          parameters("pageSize".as[Int].optional) { (pageSize) =>
+          parameters("pageSize".as[Int].optional, "random".as[Boolean].optional, "search".optional) { (pageSize, random, search) =>
             val size = pageSize.getOrElse(50)
-            val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
-              recipeRegistry.ask(replyTo => RecipeRegistry.GetRecipes(size, replyTo))
 
-            onComplete(futureRecipes) {
-              case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
-                complete(GetRecipesResponse(recipes, lastEvaluatedId))
-              case Failure(ex) =>
-                complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes: ${ex.getMessage}")
+            (random, search) match {
+              case (Some(true), _) =>
+                // Fetch random recipes
+                val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                  recipeRegistry.ask(replyTo => RecipeRegistry.GetRandomRecipes(size, replyTo))
+
+                onComplete(futureRecipes) {
+                  case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                    complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                  case Failure(ex) =>
+                    complete(StatusCodes.InternalServerError -> s"Failed to fetch random recipes: ${ex.getMessage}")
+                }
+
+              case (_, Some(searchTerm)) =>
+                // Fetch recipes by search term
+                val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                  recipeRegistry.ask(replyTo => RecipeRegistry.SearchRecipes(searchTerm, size, replyTo))
+
+                onComplete(futureRecipes) {
+                  case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                    complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                  case Failure(ex) =>
+                    complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes by search: ${ex.getMessage}")
+                }
+
+              case _ =>
+                // Fetch regular recipes
+                val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                  recipeRegistry.ask(replyTo => RecipeRegistry.GetRecipes(size, replyTo))
+
+                onComplete(futureRecipes) {
+                  case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                    complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                  case Failure(ex) =>
+                    complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes: ${ex.getMessage}")
+                }
             }
           }
         },

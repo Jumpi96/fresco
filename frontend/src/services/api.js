@@ -24,6 +24,16 @@ export const api = {
     return response.data;
   },
 
+  async searchRecipes(searchTerm, pageSize = 12) {
+    let url = `${API_BASE_URL}/recipes`;
+    const params = new URLSearchParams();
+    params.append('search', searchTerm); // Add the search term as a query parameter
+    params.append('pageSize', pageSize); // Include page size for pagination
+    url += `?${params.toString()}`;
+    const response = await axios.get(url);
+    return response.data; // Return the response data
+  },
+
   async getRecipe(recipeId, userId) {
     const response = await axios.get(`${API_BASE_URL}/recipes/${recipeId}?userId=${userId}`);
     return response.data;

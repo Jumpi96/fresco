@@ -15,6 +15,8 @@ object RecipeRegistry {
   // actor protocol
   sealed trait Command
   final case class GetRecipes(pageSize: Int, replyTo: ActorRef[GetRecipesResponse]) extends Command
+  final case class GetRandomRecipes(pageSize: Int, replyTo: ActorRef[GetRecipesResponse]) extends Command
+  final case class SearchRecipes(searchTerm: String, pageSize: Int, replyTo: ActorRef[GetRecipesResponse]) extends Command
   final case class GetFavouriteRecipes(userId: String, pageSize: Int, lastEvaluatedId: Option[String], replyTo: ActorRef[GetRecipesResponse]) extends Command
   final case class AddFavouriteRecipe(userId: String, recipeId: String, replyTo: ActorRef[AddFavouriteResponse]) extends Command
   final case class GetRecipesResponse(recipes: Seq[Recipe], lastEvaluatedId: Option[String]) extends Command
@@ -67,6 +69,18 @@ object RecipeRegistry {
             replyTo ! GetRecipesResponse(recipes, newLastEvaluatedId)
           case Failure(ex) =>
             log.error(s"Failed to fetch recipes: ${ex.getMessage}")
+            replyTo ! GetRecipesResponse(Seq.empty, None)
+        }
+        Behaviors.same
+
+      case SearchRecipes(searchTerm, pageSize, replyTo) =>
+        // Fetch recipes by search term using the repository
+        repository.searchRecipes(searchTerm, pageSize).onComplete {
+          case Success((recipes, newLastEvaluatedId)) =>
+            log.info(s"Fetched ${recipes.size} recipes matching search term '$searchTerm'")
+            replyTo ! GetRecipesResponse(recipes, newLastEvaluatedId)
+          case Failure(ex) =>
+            log.error(s"Failed to search recipes: ${ex.getMessage}")
             replyTo ! GetRecipesResponse(Seq.empty, None)
         }
         Behaviors.same

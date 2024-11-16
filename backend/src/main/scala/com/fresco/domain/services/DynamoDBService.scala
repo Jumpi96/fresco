@@ -48,7 +48,7 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
     Future {
       val request = new QueryRequest()
         .withTableName(recipesTable)
-        .withIndexName("IndexNumberIndex")
+        .withIndexName("IndexNumberIndex") // TODO: move from here
         .withKeyConditionExpression("indexNumber = :indexNumber")
         .addExpressionAttributeValuesEntry(":indexNumber", new AttributeValue().withN(index.toString))
 
@@ -261,6 +261,35 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
   def getRecipeCount: Future[Long] = {
     Future {
       dynamoDBClient.describeTable(recipesTable).getTable.getItemCount
+    }
+  }
+
+  def searchRecipes(searchTerm: String, limit: Int = 50): Future[(Seq[Recipe], Option[String])] = {
+    val queryRequest = new QueryRequest()
+      .withTableName(recipesTable)
+      .withKeyConditionExpression("begins_with(#n, :name)") // Use begins_with for partial matching
+      .addExpressionAttributeNamesEntry("#n", "name") // Map placeholder to actual attribute name
+      .addExpressionAttributeValuesEntry(":name", new AttributeValue().withS(searchTerm))
+      .withLimit(limit)
+
+    Future {
+      val result: QueryResult = dynamoDBClient.query(queryRequest)
+
+      // Convert the result into a sequence of Recipe case class instances
+      val recipes: Seq[Recipe] = result.getItems.asScala.map { item =>
+        convertToRecipe(item) // Use the existing convertToRecipe method
+      }.toSeq
+
+      // Extract the last evaluated key for pagination
+      val lastEvaluatedId: Option[String] = Option(result.getLastEvaluatedKey).flatMap { keyMap =>
+        Option(keyMap.get("id")).map(_.getS)
+      }
+
+      // Return recipes and the lastEvaluatedId (for pagination)
+      (recipes, lastEvaluatedId)
+    }.recover {
+      case ex: Exception =>
+        throw new RuntimeException(s"Error searching recipes: ${ex.getMessage}")
     }
   }
 }
