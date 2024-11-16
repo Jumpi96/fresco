@@ -13,13 +13,7 @@ resource "aws_dynamodb_table" "recipes" {
     type = "N"
   }
 
-  attribute {
-    name = "name"
-    type = "S"
-  }
-
   hash_key = "id"
-  range_key = "name"
 
   global_secondary_index {
     name               = "IndexNumberIndex"
