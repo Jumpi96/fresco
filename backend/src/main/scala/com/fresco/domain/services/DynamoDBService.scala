@@ -265,20 +265,22 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
   }
 
   def searchRecipes(searchTerm: String, limit: Int = 50): Future[(Seq[Recipe], Option[String])] = {
-    val queryRequest = new QueryRequest()
+    val scanRequest = new ScanRequest()
       .withTableName(recipesTable)
-      .withKeyConditionExpression("begins_with(#n, :name)") // Use begins_with for partial matching
+      .withFilterExpression("contains(#n, :name)") // Use contains in the filter expression
       .addExpressionAttributeNamesEntry("#n", "name") // Map placeholder to actual attribute name
       .addExpressionAttributeValuesEntry(":name", new AttributeValue().withS(searchTerm))
-      .withLimit(limit)
 
     Future {
-      val result: QueryResult = dynamoDBClient.query(queryRequest)
+      val result: ScanResult = dynamoDBClient.scan(scanRequest)
 
       // Convert the result into a sequence of Recipe case class instances
       val recipes: Seq[Recipe] = result.getItems.asScala.map { item =>
         convertToRecipe(item) // Use the existing convertToRecipe method
       }.toSeq
+
+      // Limit the number of recipes returned
+      val limitedRecipes = recipes.take(limit)
 
       // Extract the last evaluated key for pagination
       val lastEvaluatedId: Option[String] = Option(result.getLastEvaluatedKey).flatMap { keyMap =>
@@ -286,7 +288,7 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
       }
 
       // Return recipes and the lastEvaluatedId (for pagination)
-      (recipes, lastEvaluatedId)
+      (limitedRecipes, lastEvaluatedId)
     }.recover {
       case ex: Exception =>
         throw new RuntimeException(s"Error searching recipes: ${ex.getMessage}")

@@ -142,8 +142,8 @@ const recipes = {
     },
     async searchRecipes({ commit }, searchTerm) {
       try {
-        const response = api.searchRecipes(searchTerm);
-        commit('REPLACE_RECIPES', response.data.recipes);
+        const response = await api.searchRecipes(searchTerm);
+        commit('REPLACE_RECIPES', response.recipes);
       } catch (error) {
         console.error("Error fetching recipes:", error);
       }
