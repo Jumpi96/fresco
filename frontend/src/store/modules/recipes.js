@@ -1,5 +1,6 @@
 import { api } from '@/services/api';
 import { auth } from '@/services/auth';
+import axios from 'axios';
 
 const recipes = {
   namespaced: true,
@@ -15,6 +16,9 @@ const recipes = {
   mutations: {
     SET_RECIPES(state, recipes) {
       state.recipes = [...state.recipes, ...recipes];
+    },
+    REPLACE_RECIPES(state, recipes) {
+      state.recipes = recipes;
     },
     SET_CURRENT_RECIPE(state, data) {
       state.currentRecipe = data.recipe;
@@ -51,11 +55,10 @@ const recipes = {
     },
   },
   actions: {
-    async fetchRecipes({ commit }, lastEvaluatedId = null) {
+    async fetchRecipes({ commit }) {
       try {
-        const data = await api.getRecipes(lastEvaluatedId);
+        const data = await api.getRecipes();
         commit('SET_RECIPES', data.recipes);
-        commit('SET_LAST_EVALUATED_ID', data.lastEvaluatedId);
       } catch (error) {
         console.error('Failed to fetch recipes:', error);
       }
@@ -135,6 +138,14 @@ const recipes = {
         }
       } catch (error) {
         console.error('Error toggling favourite:', error);
+      }
+    },
+    async searchRecipes({ commit }, searchTerm) {
+      try {
+        const response = await api.searchRecipes(searchTerm);
+        commit('REPLACE_RECIPES', response.recipes);
+      } catch (error) {
+        console.error("Error fetching recipes:", error);
       }
     },
   },

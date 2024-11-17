@@ -23,16 +23,23 @@ export const api = {
     return response.data;
   },
 
-  async getRecipes(lastEvaluatedId = null, pageSize = 12) {
+  async getRecipes(pageSize = 12) {
     let url = `${API_BASE_URL}/recipes`;
     const params = new URLSearchParams();
-    if (lastEvaluatedId) {
-      params.append('lastEvaluatedId', lastEvaluatedId);
-    }
     params.append('pageSize', pageSize);
     url += `?${params.toString()}`;
     const response = await axios.get(url, { headers: getAuthHeaders() });
     return response.data;
+  },
+
+  async searchRecipes(searchTerm, pageSize = 12) {
+    let url = `${API_BASE_URL}/recipes`;
+    const params = new URLSearchParams();
+    params.append('search', searchTerm); // Add the search term as a query parameter
+    params.append('pageSize', pageSize); // Include page size for pagination
+    url += `?${params.toString()}`;
+    const response = await axios.get(url);
+    return response.data; // Return the response data
   },
 
   async getRecipe(recipeId, userId) {

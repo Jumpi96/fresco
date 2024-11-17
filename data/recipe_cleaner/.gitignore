@@ -1,0 +1,22 @@
+# Python specific files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Output files
+*.csv
+
+# Miscellaneous
+.DS_Store
+*.swp
+
+data/

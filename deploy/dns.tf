@@ -11,19 +11,22 @@ data "aws_route53_zone" "main" {
 
 # Route 53 record for frontend
 resource "aws_route53_record" "frontend" {
+  count = var.enable_backend ? 1 : 0
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "fresco.jplorenzo.com"
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.frontend.domain_name
-    zone_id                = aws_cloudfront_distribution.frontend.hosted_zone_id
+    name                   = aws_cloudfront_distribution.frontend[0].domain_name
+    zone_id                = aws_cloudfront_distribution.frontend[0].hosted_zone_id
     evaluate_target_health = false
   }
 }
 
 # CloudFront distribution
 resource "aws_cloudfront_distribution" "frontend" {
+  count = var.enable_backend ? 1 : 0  # Conditional creation based on backend enablement
+
   origin {
     domain_name = aws_s3_bucket_website_configuration.frontend.website_endpoint
     origin_id   = "S3-${aws_s3_bucket.frontend.id}"
@@ -36,8 +39,9 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
   }
 
+  # Only add the backend origin if the backend is enabled
   origin {
-    domain_name = aws_elastic_beanstalk_environment.fresco_backend_env.cname
+    domain_name = aws_elastic_beanstalk_environment.fresco_backend_env[0].cname
     origin_id   = "api"
     custom_origin_config {
       http_port              = 80
@@ -106,9 +110,9 @@ resource "aws_cloudfront_distribution" "frontend" {
 
 # Output the CloudFront distribution URL
 output "backend_url" {
-  value = "${aws_route53_record.frontend.name}/api"
+  value = var.enable_backend ? "${aws_route53_record.frontend[0].name}/api" : "Backend is disabled"
 }
 
 output "frontend_url" {
-  value = aws_route53_record.frontend.name
+  value = var.enable_backend ? "${aws_route53_record.frontend[0].name}" : "Backend is disabled"
 }

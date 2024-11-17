@@ -52,7 +52,7 @@ resource "aws_s3_bucket_policy" "frontend" {
 
 # Output the CloudFront distribution ID
 output "cloudfront_distribution_id" {
-  value = aws_cloudfront_distribution.frontend.id
+  value = var.enable_backend ? "${aws_cloudfront_distribution.frontend[0].id}" : "Backend is disabled"
 }
 
 # Output the S3 bucket name

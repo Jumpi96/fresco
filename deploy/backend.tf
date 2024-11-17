@@ -1,12 +1,20 @@
+variable "enable_backend" {
+  description = "Enable or disable the backend application"
+  type        = bool
+  default     = false  # Set to false to turn off the application
+}
+
 resource "aws_elastic_beanstalk_application" "fresco_backend" {
+  count       = var.enable_backend ? 1 : 0  # Conditional creation
   name        = "fresco-backend"
   description = "Fresco Backend Application"
 }
 
 resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
-  name                = "fresco-backend-env"
-  application         = aws_elastic_beanstalk_application.fresco_backend.name
-  solution_stack_name = "64bit Amazon Linux 2 v3.7.7 running Corretto 11"
+  count                = var.enable_backend ? 1 : 0  # Conditional creation
+  name                 = "fresco-backend-env"
+  application          = aws_elastic_beanstalk_application.fresco_backend[0].name
+  solution_stack_name  = "64bit Amazon Linux 2 v3.7.7 running Corretto 11"
 
   setting {
     namespace = "aws:elasticbeanstalk:environment"
@@ -44,26 +52,24 @@ resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
     value     = data.aws_acm_certificate.jplorenzo_cert.arn
   }
 
-  # On October 2024, AWS Elastic Beanstalk deprecated the ability to use launch templates.
-  # Because of this, this resource couldn't be created fully with Terraform.
-  # This lifecycle rule ignores all changes to this resource that was imported manually.
   lifecycle {
     ignore_changes = all
   }
 }
 
 resource "aws_iam_instance_profile" "eb_instance_profile" {
-  name = "fresco-backend-eb-instance-profile"
-  role = aws_iam_role.eb_instance_role.name
+  count = var.enable_backend ? 1 : 0  # Conditional creation
+  name  = "fresco-backend-eb-instance-profile"
+  role  = aws_iam_role.eb_instance_role.name
 }
 
 # Data source to get the Elastic Beanstalk hosted zone ID
 data "aws_elastic_beanstalk_hosted_zone" "current" {}
 
 output "elastic_beanstalk_url" {
-  value = aws_elastic_beanstalk_environment.fresco_backend_env.cname
+  value = var.enable_backend ? "${aws_elastic_beanstalk_environment.fresco_backend_env[0].cname}" : "Backend is disabled"
 }
 
 output "elastic_beanstalk_environment_name" {
-  value = aws_elastic_beanstalk_environment.fresco_backend_env.name
+  value = var.enable_backend ? "${aws_elastic_beanstalk_environment.fresco_backend_env[0].name}" : "Backend is disabled"
 }

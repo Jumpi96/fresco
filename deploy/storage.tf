@@ -5,10 +5,21 @@ resource "aws_dynamodb_table" "recipes" {
 
   attribute {
     name = "id"
-    type = "S"  # String type
+    type = "S"
+  }
+
+  attribute {
+    name = "indexNumber"
+    type = "N"
   }
 
   hash_key = "id"
+
+  global_secondary_index {
+    name               = "IndexNumberIndex"
+    hash_key           = "indexNumber"
+    projection_type    = "ALL"
+  }
 
   stream_enabled   = false
   point_in_time_recovery {

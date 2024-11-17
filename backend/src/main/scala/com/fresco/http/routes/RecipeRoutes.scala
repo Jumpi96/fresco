@@ -46,7 +46,6 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
 
   //#all-routes
   //#recipes-get
-  //#recipes-get
   val allRecipeRoutes: Route =
     pathPrefix("api" / "recipes") {
       extractRequestContext { ctx =>
@@ -54,36 +53,52 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
         tokenOpt match {
           case Some(token) =>
             onComplete(validateToken(token)) {
-              case Success(Some(user)) => // User is authenticated
+              case Success(Some(userId)) => // User is authenticated
                 concat(
                   pathEnd {
-                    parameters("pageSize".as[Int].optional, "lastEvaluatedId".optional) { (pageSize, lastEvaluatedId) =>
+                    parameters("pageSize".as[Int].optional, "random".as[Boolean].optional, "search".optional) { (pageSize, random, search) =>
                       val size = pageSize.getOrElse(50)
-                      val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
-                        recipeRegistry.ask(replyTo => RecipeRegistry.GetRecipes(size, lastEvaluatedId, replyTo))
 
-                      onComplete(futureRecipes) {
-                        case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
-                          complete(GetRecipesResponse(recipes, lastEvaluatedId))
-                        case Failure(ex) =>
-                          complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes: ${ex.getMessage}")
+                      (random, search) match {
+                        case (Some(true), _) =>
+                          // Fetch random recipes
+                          val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                            recipeRegistry.ask(replyTo => RecipeRegistry.GetRandomRecipes(size, replyTo))
+
+                          onComplete(futureRecipes) {
+                            case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                              complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                            case Failure(ex) =>
+                              complete(StatusCodes.InternalServerError -> s"Failed to fetch random recipes: ${ex.getMessage}")
+                          }
+
+                        case (_, Some(searchTerm)) =>
+                          // Fetch recipes by search term
+                          val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                            recipeRegistry.ask(replyTo => RecipeRegistry.SearchRecipes(searchTerm, size, replyTo))
+
+                          onComplete(futureRecipes) {
+                            case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                              complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                            case Failure(ex) =>
+                              complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes by search: ${ex.getMessage}")
+                          }
+
+                        case _ =>
+                          // Fetch regular recipes
+                          val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                            recipeRegistry.ask(replyTo => RecipeRegistry.GetRecipes(size, replyTo))
+
+                          onComplete(futureRecipes) {
+                            case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                              complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                            case Failure(ex) =>
+                              complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes: ${ex.getMessage}")
+                          }
                       }
                     }
-                  },
-                  path(Segment) { id =>
-                    get {
-                      parameters("userId".as[String]) { (userId) =>
-                        onComplete(recipeRegistry.ask(replyTo => GetRecipe(id, userId, replyTo))) {
-                          case Success(GetRecipeResponse(recipe, isFavourite)) =>
-                            complete(GetRecipeResponse(recipe, isFavourite))
-                          case Success(_) =>
-                            complete(StatusCodes.NotFound -> s"Recipe with ID $id not found")
-                          case Failure(exception) =>
-                            complete(StatusCodes.InternalServerError -> s"Failed to fetch recipe: ${exception.getMessage}")
-                        }
-                      }
-                    }
-                  })
+                  }
+                )
               case Success(None) =>
                 complete(StatusCodes.Unauthorized -> "Invalid token")
               case Failure(ex) =>
@@ -97,51 +112,68 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
 
   val favouriteRoutes: Route =
     pathPrefix("api" / "favourites") {
-      concat(
-        // GET method for fetching favourite recipes
-        get {
-          parameters("userId".as[String], "pageSize".as[Int].optional, "lastEvaluatedId".optional) { (userId, pageSize, lastEvaluatedId) =>
-            val size = pageSize.getOrElse(50)
-            val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
-              recipeRegistry.ask(replyTo => RecipeRegistry.GetFavouriteRecipes(userId, size, lastEvaluatedId, replyTo))
+      extractRequestContext { ctx =>
+        val tokenOpt = ctx.request.headers.find(_.name() == "Authorization").map(_.value().stripPrefix("Bearer "))
+        tokenOpt match {
+          case Some(token) =>
+            onComplete(validateToken(token)) {
+              case Success(Some(userId)) => // User is authenticated
+                concat(
+                  // GET method for fetching favourite recipes
+                  get {
+                    parameters("pageSize".as[Int].optional, "lastEvaluatedId".optional) { (pageSize, lastEvaluatedId) =>
+                      val size = pageSize.getOrElse(50)
+                      val futureRecipes: Future[RecipeRegistry.GetRecipesResponse] =
+                        recipeRegistry.ask(replyTo => RecipeRegistry.GetFavouriteRecipes(userId, size, lastEvaluatedId, replyTo))
 
-            onComplete(futureRecipes) {
-              case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
-                complete(GetRecipesResponse(recipes, lastEvaluatedId))
-              case Failure(ex) =>
-                complete(StatusCodes.InternalServerError -> s"Failed to fetch favourite recipes: ${ex.getMessage}")
-            }
-          }
-        },
-        post {
-          entity(as[AddFavouriteRequest]) { request =>
-            val futureResponse: Future[RecipeRegistry.AddFavouriteResponse] =
-              recipeRegistry.ask(replyTo => RecipeRegistry.AddFavouriteRecipe(request.userId, request.recipeId, replyTo))
+                      onComplete(futureRecipes) {
+                        case Success(GetRecipesResponse(recipes, lastEvaluatedId)) =>
+                          complete(GetRecipesResponse(recipes, lastEvaluatedId))
+                        case Failure(ex) =>
+                          complete(StatusCodes.InternalServerError -> s"Failed to fetch favourite recipes: ${ex.getMessage}")
+                      }
+                    }
+                  },
+                  post {
+                    entity(as[AddFavouriteRequest]) { request =>
+                      // Use the userId extracted from the token
+                      val futureResponse: Future[RecipeRegistry.AddFavouriteResponse] =
+                        recipeRegistry.ask(replyTo => RecipeRegistry.AddFavouriteRecipe(userId, request.recipeId, replyTo))
 
-            onComplete(futureResponse) {
-              case Success(AddFavouriteResponse(true)) =>
-                complete(StatusCodes.OK -> "Recipe added to favourites.")
-              case Success(AddFavouriteResponse(false)) =>
-                complete(StatusCodes.BadRequest -> "Failed to add recipe to favourites.")
-              case Failure(ex) =>
-                complete(StatusCodes.InternalServerError -> s"Failed to add favourite recipe: ${ex.getMessage}")
-            }
-          }
-        },
-        delete {
-          parameters("userId".as[String], "recipeId".as[String]) { (userId, recipeId) =>
-            val futureResponse: Future[RecipeRegistry.RemoveFavouriteResponse] =
-              recipeRegistry.ask(replyTo => RecipeRegistry.RemoveFavouriteRecipe(userId, recipeId, replyTo))
+                      onComplete(futureResponse) {
+                        case Success(AddFavouriteResponse(true)) =>
+                          complete(StatusCodes.OK -> "Recipe added to favourites.")
+                        case Success(AddFavouriteResponse(false)) =>
+                          complete(StatusCodes.BadRequest -> "Failed to add recipe to favourites.")
+                        case Failure(ex) =>
+                          complete(StatusCodes.InternalServerError -> s"Failed to add favourite recipe: ${ex.getMessage}")
+                      }
+                    }
+                  },
+                  delete {
+                    parameters("recipeId".as[String]) { recipeId =>
+                      // Use the userId extracted from the token
+                      val futureResponse: Future[RecipeRegistry.RemoveFavouriteResponse] =
+                        recipeRegistry.ask(replyTo => RecipeRegistry.RemoveFavouriteRecipe(userId, recipeId, replyTo))
 
-            onComplete(futureResponse) {
-              case Success(RemoveFavouriteResponse(success)) =>
-                complete(StatusCodes.OK -> "Recipe removed from favourites.")
+                      onComplete(futureResponse) {
+                        case Success(RemoveFavouriteResponse(success)) =>
+                          complete(StatusCodes.OK -> "Recipe removed from favourites.")
+                        case Failure(ex) =>
+                          complete(StatusCodes.InternalServerError -> s"Failed to remove favourite recipe: ${ex.getMessage}")
+                      }
+                    }
+                  }
+                )
+              case Success(None) =>
+                complete(StatusCodes.Unauthorized -> "Invalid token")
               case Failure(ex) =>
-                complete(StatusCodes.InternalServerError -> s"Failed to remove favourite recipe: ${ex.getMessage}")
+                complete(StatusCodes.InternalServerError -> s"Token validation failed: ${ex.getMessage}")
             }
-          }
+          case None =>
+            complete(StatusCodes.Unauthorized -> "Missing token")
         }
-      )
+      }
     }
 
   val recipeRoutes = concat(allRecipeRoutes, favouriteRoutes)
