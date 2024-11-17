@@ -151,6 +151,10 @@ jobs:
 
             prod {
               aws {
+                auth {
+                  userPoolId = "${{ needs.infrastructure.outputs.cognito_user_pool_id }}"
+                  userPoolRegion = "eu-central-1"
+                }
                 storage {
                   recipesTableName = "${{ needs.infrastructure.outputs.recipes_table_name }}"
                   ingredientsTableName = "${{ needs.infrastructure.outputs.ingredients_table_name }}"

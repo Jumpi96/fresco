@@ -8,31 +8,15 @@ import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import com.fresco.http.formats.JsonFormats
 import com.fresco.registries.RecipeRegistry
-import com.fresco.registries.RecipeRegistry.{AddFavouriteRequest, AddFavouriteResponse, GetRecipe, GetRecipeResponse, GetRecipesResponse, RemoveFavouriteResponse}
+import com.fresco.registries.RecipeRegistry.{AddFavouriteRequest, AddFavouriteResponse, GetRecipesResponse, RemoveFavouriteResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
-import com.auth0.jwt.interfaces.DecodedJWT
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import spray.json._
-import spray.json.DefaultJsonProtocol._
-import scala.concurrent.ExecutionContext.Implicits.global
-import java.math.BigInteger
-import java.security.spec.RSAPublicKeySpec
-import scala.concurrent.duration._
-import scala.concurrent.{Future, Promise}
-import scala.collection.mutable
-import akka.actor.Scheduler
-import java.security.KeyFactory
-import java.security.interfaces.RSAPublicKey
+import scala.util.{Failure, Success}
+import com.fresco.http.auth.CognitoAuth
 
 //#import-json-formats
 //#recipe-routes-class
-class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit val system: ActorSystem[_]) {
+class RecipeRoutes(cognitoAuth: CognitoAuth, recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit val system: ActorSystem[_]) {
 
   //#recipe-routes-class
   import JsonFormats.*
@@ -52,7 +36,7 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
         val tokenOpt = ctx.request.headers.find(_.name() == "Authorization").map(_.value().stripPrefix("Bearer "))
         tokenOpt match {
           case Some(token) =>
-            onComplete(validateToken(token)) {
+            onComplete(cognitoAuth.validateToken(token)(system.classicSystem)) {
               case Success(Some(userId)) => // User is authenticated
                 concat(
                   pathEnd {
@@ -116,7 +100,7 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
         val tokenOpt = ctx.request.headers.find(_.name() == "Authorization").map(_.value().stripPrefix("Bearer "))
         tokenOpt match {
           case Some(token) =>
-            onComplete(validateToken(token)) {
+            onComplete(cognitoAuth.validateToken(token)(system.classicSystem)) {
               case Success(Some(userId)) => // User is authenticated
                 concat(
                   // GET method for fetching favourite recipes
@@ -178,83 +162,4 @@ class RecipeRoutes(recipeRegistry: ActorRef[RecipeRegistry.Command])(implicit va
 
   val recipeRoutes = concat(allRecipeRoutes, favouriteRoutes)
   //#all-routes
-
-  // Cache for public keys
-  private var cachedPublicKeys: Option[Map[String, (String, String)]] = None
-  private var keysLastFetched: Long = 0
-  private val cacheDuration: FiniteDuration = 1.hour // Set your desired cache duration
-
-  // Function to fetch public keys from Cognito
-  def fetchCognitoPublicKeys(userPoolId: String, region: String)(implicit ec: ExecutionContext): Future[Map[String, (String, String)]] = {
-    val jwksUrl = s"https://cognito-idp.$region.amazonaws.com/$userPoolId/.well-known/jwks.json"
-    
-    for {
-      response <- Http().singleRequest(HttpRequest(uri = jwksUrl))
-      json <- Unmarshal(response.entity).to[String]
-    } yield {
-      // Parse JSON and handle potential errors
-      val keysField = json.parseJson.asJsObject.fields.get("keys")
-      
-      keysField match {
-        case Some(JsArray(keys)) =>
-          // Convert each JsObject to a tuple and collect them into a Map
-          keys.map { key =>
-            val keyObj = key.asJsObject
-            val kid = keyObj.fields("kid").convertTo[String] // "kid" field in JSON
-            val n = keyObj.fields("n").convertTo[String]     // "n" field in JSON
-            val e = keyObj.fields("e").convertTo[String]     // "e" field in JSON
-            kid -> (n, e) // Create a tuple (kid, (n, e)) for the key
-          }.toMap // Convert to Map
-        case _ =>
-          throw new Exception("Invalid JSON format: 'keys' field is missing or not an array")
-      }
-    }
-  }
-
-  // Function to get public keys, using cache
-  def getPublicKeys(userPoolId: String, region: String): Future[Map[String, (String, String)]] = {
-    val now = System.currentTimeMillis()
-    if (cachedPublicKeys.isEmpty || (now - keysLastFetched) > cacheDuration.toMillis) {
-      // Fetch new keys and update cache
-      fetchCognitoPublicKeys(userPoolId, region).map { keys =>
-        cachedPublicKeys = Some(keys)
-        keysLastFetched = now
-        keys
-      }
-    } else {
-      // Return cached keys
-      Future.successful(cachedPublicKeys.get)
-    }
-  }
-
-  // Function to validate the token and extract the user ID
-  def validateToken(token: String): Future[Option[String]] = {
-    val userPoolId = "your_user_pool_id" // Replace with your User Pool ID
-    val region = "your_region" // Replace with your AWS region
-
-    for {
-      publicKeys <- getPublicKeys(userPoolId, region)
-      decodedJWT <- Future {
-        Try {
-          val jwt = JWT.decode(token)
-          val kid = jwt.getKeyId
-          val (n, e) = publicKeys.get(kid).getOrElse(throw new Exception("Invalid key ID"))
-          val algorithm = {
-            val keyFactory = KeyFactory.getInstance("RSA")
-            val publicKey: RSAPublicKey = keyFactory.generatePublic(new RSAPublicKeySpec(new BigInteger(n, 16), new BigInteger(e, 16))).asInstanceOf[RSAPublicKey]
-            Algorithm.RSA256(publicKey)
-          }
-          val verifier = JWT.require(algorithm).build()
-          verifier.verify(token)
-        }
-      }
-    } yield {
-      decodedJWT match {
-        case Success(decoded) =>
-          Some(decoded.getClaim("sub").asString()) // Extract user ID from the token
-        case Failure(_) =>
-          None // Token is invalid
-      }
-    }
-  }
 }

@@ -44,15 +44,10 @@ const authModule = {
     },
     async getCurrentUser({ commit }) {
       try {
-        const session = auth.getSession();
-        if (session) {
-          commit('SET_USER', session);
-          return session;
-        }
         const user = await auth.getCurrentUser();
         if (user) {
           commit('SET_USER', user);
-          auth.setSession(user);
+          return user;
         }
         return user;
       } catch (error) {

@@ -16,6 +16,10 @@ fresco {
     aws {
       accessKey = "accessKey"
       secretKey = "secretKey"
+      auth {
+        userPoolId = "userPoolId"
+        userPoolRegion = "userPoolRegion"
+      }
       storage {
         recipesTableName = "recipes"
         ingredientsTableName = "ingredients"

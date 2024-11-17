@@ -36,7 +36,7 @@ export const auth = {
         onSuccess: (result) => {
           const userAttributes = result.getIdToken().payload;
           const token = result.getIdToken().getJwtToken();
-          setSession({ idToken: token });
+          localStorage.setItem('userSession', JSON.stringify({ idToken: token }));
           resolve({
             username: userAttributes['cognito:username'],
             email: userAttributes.email,
@@ -103,10 +103,6 @@ export const auth = {
         }
       });
     });
-  },
-
-  setSession: (session) => {
-    localStorage.setItem('userSession', JSON.stringify(session));
   },
 
   getSession: () => {

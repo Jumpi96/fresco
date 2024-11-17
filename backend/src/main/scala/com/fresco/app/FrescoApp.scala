@@ -9,6 +9,7 @@ import com.fresco.config.AWSClientsProvider
 import com.fresco.domain.repositories.{IngredientRepository, RecipeRepository}
 import com.fresco.domain.services.{DynamoDBService, S3Service}
 import com.fresco.http.CORSHandler
+import com.fresco.http.auth.CognitoAuth
 import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes}
 import com.fresco.registries.{IngredientRegistry, RecipeRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -61,12 +62,16 @@ object FrescoApp {
       val recipeRegistryActor = context.spawn(RecipeRegistry(recipeRepository), "RecipeRegistryActor")
       context.watch(recipeRegistryActor)
 
+      val userPoolId = awsConfig.getConfig("auth").getString("userPoolId")
+      val userPoolRegion = awsConfig.getConfig("auth").getString("userPoolRegion")
+      val cognitoAuth = CognitoAuth(userPoolId, userPoolRegion)(context.executionContext)
+
       val allowedOrigin = config.getString("fresco.allowedOrigin")
       val port = config.getInt("fresco.port")
       val routes: Route = {
         concat(
           new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
-          new RecipeRoutes(recipeRegistryActor)(context.system).recipeRoutes
+          new RecipeRoutes(cognitoAuth, recipeRegistryActor)(context.system).recipeRoutes
         )
       }
       startHttpServer(port, routes)(context.system)

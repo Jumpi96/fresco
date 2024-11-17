@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { getSession } from './auth'; // Import the getSession function
+import { auth } from '@/services/auth';
 
 const API_BASE_URL = import.meta.env.VITE_FRESCO_API_BASE_URL;
 
 const getAuthHeaders = () => {
-  const session = getSession();
+  const session = auth.getSession();
   return {
     Authorization: session ? `Bearer ${session.idToken}` : '',
   };
@@ -43,7 +43,7 @@ export const api = {
   },
 
   async getRecipe(recipeId, userId) {
-    const response = await axios.get(`${API_BASE_URL}/recipes/${recipeId}?userId=${userId}`, { headers: getAuthHeaders() });
+    const response = await axios.get(`${API_BASE_URL}/recipes/${recipeId}`, { headers: getAuthHeaders() });
     return response.data;
   },
 
