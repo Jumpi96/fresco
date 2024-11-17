@@ -1,33 +1,39 @@
 package com.fresco.http.routes
 
-import akka.actor.ActorSystem
 import akka.actor.testkit.typed.scaladsl.{ActorTestKit, TestProbe}
+import akka.actor.typed.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport.*
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.Authorization
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import akka.testkit.TestDuration
+import akka.util.Timeout
 import com.fresco.domain.models.{IngredientPerPerson, Macros, Recipe, Step}
+import com.fresco.http.auth.CognitoAuth
 import com.fresco.http.formats.JsonFormats.*
 import com.fresco.registries.RecipeRegistry
 import com.fresco.registries.RecipeRegistry.{GetRecipe, GetRecipeResponse, GetRecipes, GetRecipesResponse}
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 
+import scala.concurrent.Future
 import scala.concurrent.duration.*
 
-class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with ScalatestRouteTest {
-
-  // Akka TestKit for Actor-based testing
+class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with ScalatestRouteTest with MockitoSugar {
   val testKit = ActorTestKit()
+  // Use untyped ActorSystem for compatibility with ScalatestRouteTest
+  override implicit val system: akka.actor.ActorSystem = testKit.system.classicSystem
 
-  implicit def default(implicit system: ActorSystem): RouteTestTimeout =
-    RouteTestTimeout(new DurationInt(3).second.dilated(system))
+  implicit def default(implicit system: akka.actor.ActorSystem): RouteTestTimeout =
+    RouteTestTimeout(3.seconds)
 
-  // Create a TestProbe for simulating ActorRef responses
   val recipeRegistryProbe: TestProbe[RecipeRegistry.Command] = testKit.createTestProbe[RecipeRegistry.Command]()
-  val recipeRoutes = new RecipeRoutes(recipeRegistryProbe.ref)(testKit.system)
+  val mockCognitoAuth: CognitoAuth = mock[CognitoAuth]
+  val recipeRoutes = new RecipeRoutes(mockCognitoAuth, recipeRegistryProbe.ref)(testKit.system)
 
   val recipeExampleOne: Recipe = Recipe(
     id = "1",
@@ -46,10 +52,9 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   )
 
   "RecipeRoutes" should {
-
     "return all recipes successfully" in {
-      // Mock a response for GetRecipes from the actor
-      val recipes = List(recipeExampleOne,
+      val recipes = List(
+        recipeExampleOne,
         Recipe(
           id = "2",
           name = "Recipe2",
@@ -69,10 +74,14 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       )
       val getRecipesResponse = GetRecipesResponse(recipes, None)
 
-      val test = Get("/api/recipes?pageSize=2") ~> Route.seal(recipeRoutes.recipeRoutes)
-      // In the actual actor, we send a GetRecipes message to the probe and expect it to return a response
+      when(mockCognitoAuth.validateToken(ArgumentMatchers.any[String])(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(Some("userId")))
+
+      val test = Get("/api/recipes?pageSize=2").withHeaders(
+        Authorization(akka.http.scaladsl.model.headers.OAuth2BearerToken("someValidToken"))
+      ) ~> Route.seal(recipeRoutes.recipeRoutes)
+
       val message = recipeRegistryProbe.expectMessageType[GetRecipes]
-      // Capture the `replyTo` ActorRef and send it the mocked response
       message.replyTo ! getRecipesResponse
 
       test ~> check {
@@ -80,12 +89,18 @@ class RecipeRoutesSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         responseAs[GetRecipesResponse].recipes shouldEqual recipes
       }
     }
+
     "return a specific recipe when found" in {
       val recipeExample = recipeExampleOne
       val getRecipeResponse = GetRecipeResponse(Some(recipeExample), Some(true))
 
-      // Test the route
-      val test = Get("/api/recipes/1?userId=123") ~> Route.seal(recipeRoutes.recipeRoutes)
+      when(mockCognitoAuth.validateToken(ArgumentMatchers.any[String])(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(Some("userId")))
+
+      val test = Get("/api/recipes/1").withHeaders(
+        Authorization(akka.http.scaladsl.model.headers.OAuth2BearerToken("someValidToken"))
+      ) ~> Route.seal(recipeRoutes.recipeRoutes)
+
       // Send a GetRecipe message and expect a response from the probe
       val message = recipeRegistryProbe.expectMessageType[GetRecipe]
       message.replyTo ! getRecipeResponse
