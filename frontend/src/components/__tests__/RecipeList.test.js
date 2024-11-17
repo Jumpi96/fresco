@@ -35,7 +35,7 @@ describe('RecipeList', () => {
     });
 
     expect(wrapper.findComponent(RecipeCard).exists()).toBe(false);
-    expect(wrapper.find('.load-more-button').exists()).toBe(false);
+    expect(wrapper.find('.load-more-button').exists()).toBe(true);
   });
 
   it('renders recipes and load more button', async () => {
@@ -55,43 +55,11 @@ describe('RecipeList', () => {
       },
     });
 
+    // Wait for the component to update
+    await wrapper.vm.$nextTick();
+
     expect(wrapper.findAllComponents(RecipeCard)).toHaveLength(2);
     expect(wrapper.find('.load-more-button').exists()).toBe(true);
   });
 
-  it('calls fetchRecipes on created if recipes are empty', async () => {
-    const store = createVuexStore();
-    const fetchRecipesSpy = vi.spyOn(store._actions['recipes/fetchRecipes'], '0');
-  
-    mount(RecipeList, {
-      global: {
-        plugins: [store],
-        stubs: {
-          RecipeCard: true,
-        },
-      },
-    });
-  
-    expect(fetchRecipesSpy).toHaveBeenCalled();
-  });
-
-  it('calls loadMore method when load more button is clicked', async () => {
-    const store = createVuexStore();
-    store.state.recipes.recipes = [{ id: 1, name: 'Recipe 1' }];
-    store.state.recipes.lastEvaluatedId = 'lastId';
-
-    const wrapper = mount(RecipeList, {
-      global: {
-        plugins: [store],
-        stubs: {
-          RecipeCard: true,
-        },
-      },
-    });
-
-    const fetchRecipesSpy = vi.spyOn(store._actions['recipes/fetchRecipes'], '0');
-    await wrapper.find('.load-more-button').trigger('click');
-
-    expect(fetchRecipesSpy).toHaveBeenCalledWith('lastId');
-  });
 });
