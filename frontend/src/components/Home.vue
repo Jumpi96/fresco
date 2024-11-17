@@ -119,10 +119,13 @@ export default {
     };
 
     onMounted(async () => {
-      if (!isAuthenticated.value) {
-        await store.dispatch('auth/getCurrentUser');
+      console.log('Checking authentication state...');
+      await store.dispatch('auth/getCurrentUser'); // Wait for the action to complete
+      if (isAuthenticated.value) {
+        console.log('User is authenticated, redirecting to /recipes...');
+        router.push('/recipes'); // Redirect if authenticated
       } else {
-        router.push('/recipes'); // Redirect if already authenticated
+        console.log('User is not authenticated.');
       }
     });
 

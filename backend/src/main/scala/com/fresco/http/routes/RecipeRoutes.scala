@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import com.fresco.http.formats.JsonFormats
 import com.fresco.registries.RecipeRegistry
-import com.fresco.registries.RecipeRegistry.{AddFavouriteRequest, AddFavouriteResponse, GetRecipesResponse, RemoveFavouriteResponse}
+import com.fresco.registries.RecipeRegistry.{AddFavouriteRequest, AddFavouriteResponse, GetRecipe, GetRecipeResponse, GetRecipesResponse, RemoveFavouriteResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -79,6 +79,18 @@ class RecipeRoutes(cognitoAuth: CognitoAuth, recipeRegistry: ActorRef[RecipeRegi
                             case Failure(ex) =>
                               complete(StatusCodes.InternalServerError -> s"Failed to fetch recipes: ${ex.getMessage}")
                           }
+                      }
+                    }
+                  },
+                  path(Segment) { id =>
+                    get {
+                      onComplete(recipeRegistry.ask(replyTo => GetRecipe(id, userId, replyTo))) {
+                        case Success(GetRecipeResponse(recipe, isFavourite)) =>
+                          complete(GetRecipeResponse(recipe, isFavourite))
+                        case Success(_) =>
+                          complete(StatusCodes.NotFound -> s"Recipe with ID $id not found")
+                        case Failure(exception) =>
+                          complete(StatusCodes.InternalServerError -> s"Failed to fetch recipe: ${exception.getMessage}")
                       }
                     }
                   }

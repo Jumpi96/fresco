@@ -30,7 +30,6 @@ const authModule = {
       try {
         const user = await auth.signIn(username, password);
         commit('SET_USER', user);
-        auth.setSession(user);
         return user;
       } catch (error) {
         console.error('Sign in error:', error);

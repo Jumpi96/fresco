@@ -72,7 +72,6 @@ class CognitoAuth(userPoolId: String, region: String)(implicit ec: ExecutionCont
         keys
       }
     } else {
-      log.info("Returning cached public keys.")
       // Return cached keys
       Future.successful(cachedPublicKeys.get)
     }
@@ -80,7 +79,6 @@ class CognitoAuth(userPoolId: String, region: String)(implicit ec: ExecutionCont
 
   // Function to validate the token and extract the user ID
   def validateToken(token: String)(implicit system: ActorSystem): Future[Option[String]] = {
-    log.info("Validating token.")
 
     for {
       publicKeys <- getPublicKeys()
@@ -94,7 +92,6 @@ class CognitoAuth(userPoolId: String, region: String)(implicit ec: ExecutionCont
 
           val jwt = JWT.decode(token)
           val kid = jwt.getKeyId
-          log.info(s"Token decoded. Key ID: $kid")
 
           val (n, e) = publicKeys.get(kid).getOrElse {
             log.error(s"Invalid key ID: $kid")
@@ -118,7 +115,7 @@ class CognitoAuth(userPoolId: String, region: String)(implicit ec: ExecutionCont
       decodedJWT match {
         case Success(decoded) =>
           log.info("Token successfully validated.")
-          Some(decoded.getClaim("sub").asString()) // Extract user ID from the token
+          Some(decoded.getClaim("cognito:username").asString()) // Extract user ID from the token
         case Failure(ex) =>
           log.error(s"Token validation failed: ${ex.getMessage}")
           None // Token is invalid
