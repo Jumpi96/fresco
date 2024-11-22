@@ -143,6 +143,7 @@ export default {
             :ingredient="ingredient"
             :ingredientDetails="ingredients[ingredient.id]"
             :servings="servings"
+            :showCheckbox="false"
             @ingredientBoughtToggle="handleIngredientBoughtToggle"
           />
         </ul>

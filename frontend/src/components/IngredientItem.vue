@@ -1,6 +1,6 @@
 <template>
   <li class="ingredient-item" :class="{ 'bought': isBought }">
-    <div class="checkbox-container">
+    <div class="checkbox-container" v-if="showCheckbox">
       <input type="checkbox" :checked="isBought" @change="toggleBought" />
     </div>
     <img v-if="ingredientDetails && ingredientDetails.imagePath" 
@@ -36,6 +36,10 @@ export default {
     servings: {
       type: Number,
       required: true
+    },
+    showCheckbox: {
+      type: Boolean,
+      default: true
     }
   },
   setup(props, { emit }) {
