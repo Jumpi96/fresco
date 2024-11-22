@@ -17,6 +17,7 @@ jobs:
       ingredients_table_name: ${{ steps.terraform_outputs.outputs.ingredients_table_name }}
       favourites_table_name: ${{ steps.terraform_outputs.outputs.favourites_table_name }}
       recipes_bucket_name: ${{ steps.terraform_outputs.outputs.recipes_bucket_name }}
+      shopping_cart_table_name: ${{ steps.terraform_outputs.outputs.shopping_cart_table_name }}
       elastic_beanstalk_environment_name: ${{ steps.terraform_outputs.outputs.elastic_beanstalk_environment_name }}
       cognito_user_pool_id: ${{ steps.terraform_outputs.outputs.cognito_user_pool_id }}
       cognito_client_id: ${{ steps.terraform_outputs.outputs.cognito_client_id }}
@@ -159,6 +160,7 @@ jobs:
                   recipesTableName = "${{ needs.infrastructure.outputs.recipes_table_name }}"
                   ingredientsTableName = "${{ needs.infrastructure.outputs.ingredients_table_name }}"
                   favouriteRecipesTableName = "${{ needs.infrastructure.outputs.favourites_table_name }}"
+                  shoppingCartTableName = "${{ needs.infrastructure.outputs.shopping_cart_table_name }}"
                   bucketName = "${{ needs.infrastructure.outputs.recipes_bucket_name }}"
                 }
               }

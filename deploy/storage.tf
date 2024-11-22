@@ -84,6 +84,29 @@ resource "aws_dynamodb_table" "favourites" {
   }
 }
 
+# DynamoDB table for storing shopping cart state
+resource "aws_dynamodb_table" "shopping_cart" {
+  name         = "fresco-shopping-cart"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "userId"
+    type = "S"  # String type
+  }
+
+  hash_key = "userId"  # Partition key
+
+  stream_enabled   = false
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = {
+    Name        = "Fresco Shopping Cart Table"
+    Environment = "Production"
+  }
+}
+
 output "recipes_table_name" {
   value = aws_dynamodb_table.recipes.name
 }
@@ -94,4 +117,8 @@ output "ingredients_table_name" {
 
 output "favourites_table_name" {
   value = aws_dynamodb_table.favourites.name
+}
+
+output "shopping_cart_table_name" {
+  value = aws_dynamodb_table.shopping_cart.name
 }

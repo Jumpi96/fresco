@@ -2,12 +2,13 @@ package com.fresco.domain.services
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2.model.{AttributeValue, DeleteItemRequest, GetItemRequest, PutItemRequest, QueryRequest, QueryResult, ScanRequest, ScanResult}
-import com.fresco.domain.models.{Ingredient, IngredientPerPerson, Macros, Recipe, Step}
+import com.fresco.domain.models.{Ingredient, IngredientPerPerson, Macros, Recipe, Step, ShoppingCart}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
 
-class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, recipesTable: String, favouriteRecipesTable: String)
+class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, recipesTable: String, favouriteRecipesTable: String,
+                      shoppingCartTable: String)
                      (implicit ec: ExecutionContext) {
 
   def getIngredients(lastEvaluatedId: Option[String] = None, limit: Int = 50): Future[(Seq[Ingredient], Option[String])] = {
@@ -292,6 +293,49 @@ class DynamoDBService(dynamoDBClient: AmazonDynamoDB, ingredientsTable: String, 
     }.recover {
       case ex: Exception =>
         throw new RuntimeException(s"Error searching recipes: ${ex.getMessage}")
+    }
+  }
+
+  def getShoppingCart(userId: String): Future[Option[ShoppingCart]] = {
+    val getItemRequest = new GetItemRequest()
+      .withTableName(shoppingCartTable)
+      .withKey(Map("userId" -> new AttributeValue().withS(userId)).asJava)
+
+    Future {
+      val result = dynamoDBClient.getItem(getItemRequest)
+      Option(result.getItem).map { item =>
+        // Convert the DynamoDB item to ShoppingCart
+        val recipes = item.get("recipes").getM.asScala.map { case (recipeId, servings) =>
+          recipeId -> servings.getN.toInt
+        }.toMap
+
+        val shoppedIngredients = item.get("shoppedIngredients").getL.asScala.map { ingredient =>
+          ingredient.getS
+        }.toSeq
+
+        ShoppingCart(recipes, shoppedIngredients)
+      }
+    }
+  }
+
+  def putShoppingCart(userId: String, shoppingCart: ShoppingCart): Future[Unit] = {
+    val item = Map(
+      "userId" -> new AttributeValue().withS(userId),
+      "recipes" -> new AttributeValue().withM(shoppingCart.recipes.map { case (recipeId, servings) =>
+        recipeId -> new AttributeValue().withN(servings.toString)
+      }.asJava),
+      "shoppedIngredients" -> new AttributeValue().withL(shoppingCart.shoppedIngredients.map { ingredientId =>
+        new AttributeValue().withS(ingredientId)
+      }.asJava)
+    ).asJava
+
+    val putItemRequest = new PutItemRequest()
+      .withTableName(shoppingCartTable)
+      .withItem(item)
+
+    Future {
+      dynamoDBClient.putItem(putItemRequest)
+      () // Return Unit to indicate completion
     }
   }
 }

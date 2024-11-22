@@ -6,12 +6,12 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import com.fresco.config.AWSClientsProvider
-import com.fresco.domain.repositories.{IngredientRepository, RecipeRepository}
+import com.fresco.domain.repositories.{IngredientRepository, RecipeRepository, ShoppingCartRepository}
 import com.fresco.domain.services.{DynamoDBService, S3Service}
 import com.fresco.http.CORSHandler
 import com.fresco.http.auth.CognitoAuth
-import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes}
-import com.fresco.registries.{IngredientRegistry, RecipeRegistry}
+import com.fresco.http.routes.{IngredientRoutes, RecipeRoutes, ShoppingCartRoutes}
+import com.fresco.registries.{IngredientRegistry, RecipeRegistry, ShoppingCartRegistry}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.util.{Failure, Success}
@@ -47,20 +47,24 @@ object FrescoApp {
       val ingredientsTable = awsConfig.getConfig("storage").getString("ingredientsTableName")
       val recipesTable = awsConfig.getConfig("storage").getString("recipesTableName")
       val favouritesTable = awsConfig.getConfig("storage").getString("favouriteRecipesTableName")
+      val shoppingCartTable = awsConfig.getConfig("storage").getString("shoppingCartTableName")
       val bucketName = awsConfig.getConfig("storage").getString("bucketName")
       val s3Client = AWSClientsProvider.createS3PresignedUrlClient(awsConfig)
       val dynamoDBClient = AWSClientsProvider.createDynamoDBClient(awsConfig)
 
-      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable, recipesTable, favouritesTable)(context.executionContext)
+      val dynamoDBService = DynamoDBService(dynamoDBClient, ingredientsTable, recipesTable, favouritesTable, shoppingCartTable)(context.executionContext)
       val s3Service = S3Service(s3Client, bucketName)(context.executionContext)
 
       val ingredientRepository = IngredientRepository(dynamoDBService, s3Service)(context.executionContext)
       val recipeRepository = RecipeRepository(dynamoDBService, s3Service)(context.executionContext)
+      val shoppingCartRepository = ShoppingCartRepository(dynamoDBService)(context.executionContext)
 
       val ingredientRegistryActor = context.spawn(IngredientRegistry(ingredientRepository), "IngredientRegistryActor")
       context.watch(ingredientRegistryActor)
       val recipeRegistryActor = context.spawn(RecipeRegistry(recipeRepository), "RecipeRegistryActor")
       context.watch(recipeRegistryActor)
+      val shoppingCartRegistryActor = context.spawn(ShoppingCartRegistry(shoppingCartRepository), "ShoppingCartRegistryActor")
+      context.watch(shoppingCartRegistryActor)
 
       val userPoolId = awsConfig.getConfig("auth").getString("userPoolId")
       val userPoolRegion = awsConfig.getConfig("auth").getString("userPoolRegion")
@@ -71,7 +75,8 @@ object FrescoApp {
       val routes: Route = {
         concat(
           new IngredientRoutes(ingredientRegistryActor)(context.system).ingredientRoutes,
-          new RecipeRoutes(cognitoAuth, recipeRegistryActor)(context.system).recipeRoutes
+          new RecipeRoutes(cognitoAuth, recipeRegistryActor)(context.system).recipeRoutes,
+          new ShoppingCartRoutes(cognitoAuth, shoppingCartRegistryActor)(context.system).shoppingCartRoutes
         )
       }
       startHttpServer(port, routes)(context.system)
