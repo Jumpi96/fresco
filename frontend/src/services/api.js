@@ -84,4 +84,14 @@ export const api = {
     const response = await axios.get(url, { headers: getAuthHeaders() });
     return response.data;
   },
+
+  async getShoppingCart() {
+    const response = await axios.get(`${API_BASE_URL}/shopping-cart`, { headers: getAuthHeaders() });
+    return response.data;
+  },
+
+  async updateShoppingCart(shoppingCart) {
+    const response = await axios.put(`${API_BASE_URL}/shopping-cart`, shoppingCart, { headers: getAuthHeaders() });
+    return response.data; // Assuming the response contains a success message or the updated cart
+  },
 };

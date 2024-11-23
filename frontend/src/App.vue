@@ -9,6 +9,9 @@ const isAuthenticated = computed(() => store.state.auth.isAuthenticated);
 
 onMounted(async () => {
   await store.dispatch('auth/getCurrentUser');
+  if (isAuthenticated.value) {
+    await store.dispatch('recipes/fetchShoppingCart');
+  }
 });
 </script>
 

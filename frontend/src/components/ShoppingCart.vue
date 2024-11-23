@@ -1,7 +1,7 @@
 <script>
 import { mapState, mapActions, mapGetters } from 'vuex';
 import IngredientItem from '@/components/IngredientItem.vue';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 export default {
   name: 'ShoppingCart',
@@ -9,11 +9,11 @@ export default {
     IngredientItem
   },
   computed: {
-    ...mapState('recipes', ['selectedRecipes', 'ingredients']),
+    ...mapState('recipes', ['selectedRecipes', 'ingredients', 'shoppedIngredients']),
     ...mapGetters('recipes', ['combinedIngredients']),
   },
   methods: {
-    ...mapActions('recipes', ['removeSelectedRecipe', 'updateRecipeServings']),
+    ...mapActions('recipes', ['removeSelectedRecipe', 'updateRecipeServings', 'addShoppedIngredient', 'removeShoppedIngredient', 'fetchShoppingCart']),
     removeRecipe(recipeId) {
       this.removeSelectedRecipe(recipeId);
     },
@@ -25,30 +25,18 @@ export default {
       }
     },
     handleIngredientBoughtToggle({ id, isBought }) {
-      this.boughtIngredients[id] = isBought;
+      if (isBought) {
+        this.addShoppedIngredient({ ingredientId: id });
+      } else {
+        this.removeShoppedIngredient({ ingredientId: id });
+      }
     },
-    resetBoughtIngredients() {
-      this.boughtIngredients = {};
+    isIngredientAlreadyShopped(id) {
+      return this.shoppedIngredients.includes(id);
     }
   },
-  setup() {
-    const boughtIngredients = ref({});
-
-    return { boughtIngredients };
-  },
-  watch: {
-    selectedRecipes: {
-      handler() {
-        this.resetBoughtIngredients();
-      },
-      deep: true
-    },
-    combinedIngredients: {
-      handler() {
-        this.resetBoughtIngredients();
-      },
-      deep: true
-    }
+  onMounted() {
+    this.fetchShoppingCart();
   }
 }
 </script>
@@ -81,11 +69,12 @@ export default {
         <ul class="ingredients-grid">
           <IngredientItem
             v-for="ingredient in combinedIngredients"
-            :key="`${ingredient.id}-${ingredient.unit}`"
+            :key="`${ingredient.id}-${ingredient.unit}-${shoppedIngredients.length}`"
             :ingredient="{ id: ingredient.id, amount: ingredient.amount, unit: ingredient.unit }"
             :ingredientDetails="{ name: ingredient.name, imagePath: ingredients[ingredient.id]?.imagePath }"
             :servings="1"
             @ingredientBoughtToggle="handleIngredientBoughtToggle"
+            :isBought="isIngredientAlreadyShopped(ingredient.id)"
           />
         </ul>
       </div>

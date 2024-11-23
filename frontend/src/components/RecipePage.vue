@@ -77,17 +77,6 @@ export default {
       this.boughtIngredients = {};
     }
   },
-  watch: {
-    selectedRecipeServings(newServings) {
-      this.servings = newServings;
-    },
-    servings() {
-      this.resetBoughtIngredients();
-    },
-    recipe() {
-      this.resetBoughtIngredients();
-    }
-  },
   created() {
     this.fetchRecipe(this.recipeId).then(() => {
       if (this.recipe) {

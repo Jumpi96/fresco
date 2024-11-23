@@ -40,16 +40,19 @@ export default {
     showCheckbox: {
       type: Boolean,
       default: true
+    },
+    isBought: {
+      type: Boolean,
+      default: false
     }
   },
   setup(props, { emit }) {
-    const isBought = ref(false);
+    const isBought = props.isBought;
 
     const toggleBought = () => {
-      isBought.value = !isBought.value;
       emit('ingredientBoughtToggle', {
         id: props.ingredient.id,
-        isBought: isBought.value
+        isBought: !isBought.value
       });
     };
 

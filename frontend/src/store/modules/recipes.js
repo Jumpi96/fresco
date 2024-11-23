@@ -1,6 +1,5 @@
 import { api } from '@/services/api';
 import { auth } from '@/services/auth';
-import axios from 'axios';
 
 const recipes = {
   namespaced: true,
@@ -10,6 +9,7 @@ const recipes = {
     ingredients: {},
     lastEvaluatedId: null,
     selectedRecipes: [],
+    shoppedIngredients: [],
     favouriteRecipes: [],
     isCurrentRecipeFavourite: null,
   },
@@ -29,6 +29,16 @@ const recipes = {
     },
     SET_LAST_EVALUATED_ID(state, id) {
       state.lastEvaluatedId = id;
+    },
+    ADD_SHOPPED_INGREDIENT(state, ingredientId) {
+      if (!state.shoppedIngredients.includes(ingredientId)) {
+        state.shoppedIngredients.push(ingredientId);
+      }
+    },
+    REMOVE_SHOPPED_INGREDIENT(state, ingredientId) {
+      if (state.shoppedIngredients.includes(ingredientId)) {
+        state.shoppedIngredients = state.shoppedIngredients.filter(id => id !== ingredientId);
+      }
     },
     ADD_SELECTED_RECIPE(state, recipe) {
       const existingIndex = state.selectedRecipes.findIndex(r => r.id === recipe.id);
@@ -61,6 +71,30 @@ const recipes = {
         commit('SET_RECIPES', data.recipes);
       } catch (error) {
         console.error('Failed to fetch recipes:', error);
+      }
+    },
+    async fetchShoppingCart({ commit, dispatch }) {
+      try {
+        const cart = await api.getShoppingCart();
+
+        if (cart.recipes && typeof cart.recipes === 'object') {
+          const recipePromises = Object.keys(cart.recipes).map(async (recipeId) => {
+            const recipeData = await api.getRecipe(recipeId);
+            commit('ADD_SELECTED_RECIPE', { ...recipeData.recipe, servings: cart.recipes[recipeId] });
+        
+            await dispatch('fetchIngredients', recipeData.recipe.ingredients.map(ingredient => ingredient.id));    
+          });
+          
+          cart.shoppedIngredients.map(async (ingredientId) => {
+            commit('ADD_SHOPPED_INGREDIENT', ingredientId); 
+          });
+
+          await Promise.all(recipePromises);
+        } else {
+          console.warn('No recipes found in the cart:', cart);
+        }
+      } catch (error) {
+        console.error('Failed to fetch shopping cart:', error);
       }
     },
     async fetchFavourites({ commit }) {
@@ -102,20 +136,31 @@ const recipes = {
         console.error('Error fetching ingredients:', error);
       }
     },
-    addSelectedRecipe({ commit }, recipe) {
+    addSelectedRecipe({ commit, dispatch }, recipe) {
       commit('ADD_SELECTED_RECIPE', recipe);
+      dispatch('updateCart');
     },
-    removeSelectedRecipe({ commit }, recipeId) {
+    removeSelectedRecipe({ commit, dispatch }, recipeId) {
       commit('REMOVE_SELECTED_RECIPE', recipeId);
+      dispatch('updateCart');
     },
-    updateRecipeServings({ commit }, { recipeId, servings }) {
+    updateRecipeServings({ commit, dispatch }, { recipeId, servings }) {
       commit('UPDATE_RECIPE_SERVINGS', { recipeId, servings });
+      dispatch('updateCart');
+    },
+    addShoppedIngredient({ commit, dispatch }, { ingredientId }) {
+      commit('ADD_SHOPPED_INGREDIENT', ingredientId);
+      dispatch('updateCart');
+    },
+    removeShoppedIngredient({ commit, dispatch }, { ingredientId }) {
+      commit('REMOVE_SHOPPED_INGREDIENT', ingredientId);
+      dispatch('updateCart');
     },
     async addFavourite({ commit }, recipe) {
       try {
-        const user = await auth.getCurrentUser(); // Get the current user
+        const user = await auth.getCurrentUser();
         if (!user) {
-          throw new Error('User not authenticated'); // Handle unauthenticated user
+          throw new Error('User not authenticated');
         }
         const response = await api.addFavourite(recipe.id, user.username);
         if (response.success) {
@@ -128,9 +173,9 @@ const recipes = {
 
     async removeFavourite({ commit }, recipe) {
       try {
-        const user = await auth.getCurrentUser(); // Get the current user
+        const user = await auth.getCurrentUser();
         if (!user) {
-          throw new Error('User not authenticated'); // Handle unauthenticated user
+          throw new Error('User not authenticated');
         }
         const response = await api.removeFavourite(recipe.id, user.username);
         if (response.success) {
@@ -147,6 +192,25 @@ const recipes = {
       } catch (error) {
         console.error("Error fetching recipes:", error);
       }
+    },
+    async updateShoppingCart({ state }) {
+      try {
+        const cartData = {
+          recipes: {},
+          shoppedIngredients: state.shoppedIngredients,
+        };
+
+        state.selectedRecipes.forEach(recipe => {
+          cartData.recipes[recipe.id] = recipe.servings;
+        });
+
+        await api.updateShoppingCart(cartData);
+      } catch (error) {
+        console.error('Failed to update shopping cart:', error);
+      }
+    },
+    updateCart({ dispatch }) {
+      dispatch('updateShoppingCart');
     },
   },
   getters: {
