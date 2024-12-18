@@ -41,7 +41,7 @@ resource "aws_cloudfront_distribution" "frontend" {
 
   # Only add the backend origin if the backend is enabled
   origin {
-    domain_name = aws_elastic_beanstalk_environment.fresco_backend_env[0].cname
+    domain_name = aws_elastic_beanstalk_environment.fresco_backend_env.cname
     origin_id   = "api"
     custom_origin_config {
       http_port              = 80

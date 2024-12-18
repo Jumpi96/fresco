@@ -11,7 +11,6 @@ resource "aws_elastic_beanstalk_application" "fresco_backend" {
 }
 
 resource "aws_elastic_beanstalk_environment" "fresco_backend_env" {
-  count                = var.enable_backend ? 1 : 0  # Conditional creation
   name                 = "fresco-backend-env"
   application          = aws_elastic_beanstalk_application.fresco_backend[0].name
   solution_stack_name  = "64bit Amazon Linux 2 v3.7.7 running Corretto 11"
@@ -67,9 +66,9 @@ resource "aws_iam_instance_profile" "eb_instance_profile" {
 data "aws_elastic_beanstalk_hosted_zone" "current" {}
 
 output "elastic_beanstalk_url" {
-  value = var.enable_backend ? "${aws_elastic_beanstalk_environment.fresco_backend_env[0].cname}" : "Backend is disabled"
+  value = var.enable_backend ? "${aws_elastic_beanstalk_environment.fresco_backend_env.cname}" : "Backend is disabled"
 }
 
 output "elastic_beanstalk_environment_name" {
-  value = var.enable_backend ? "${aws_elastic_beanstalk_environment.fresco_backend_env[0].name}" : "Backend is disabled"
+  value = var.enable_backend ? "${aws_elastic_beanstalk_environment.fresco_backend_env.name}" : "Backend is disabled"
 }

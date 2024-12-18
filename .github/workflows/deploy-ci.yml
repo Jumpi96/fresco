@@ -44,13 +44,13 @@ jobs:
         working-directory: deploy
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: terraform plan -out=tfplan -var='enable_backend=true'
         working-directory: deploy
 
       - name: Terraform Apply
         if: success()
         run: |
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve tfplan -var='enable_backend=true'
         working-directory: deploy
 
       - name: Get Terraform Outputs
