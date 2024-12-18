@@ -38,6 +38,7 @@ assembly / mainClass := Some("com.fresco.app.FrescoApp")
 
 assemblyMergeStrategy in assembly := {
   case PathList("module-info.class") => MergeStrategy.discard
+  case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.discard
   case x =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
