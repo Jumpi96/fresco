@@ -24,7 +24,7 @@ fresco {
         recipesTableName = "recipes"
         ingredientsTableName = "ingredients"
         favouriteRecipesTableName = "favourites"
-        shoppingCartTableName = "shoppint-cart"
+        shoppingCartTableName = "shopping-cart"
         bucketName = "frescoBucket"
       }
     }
